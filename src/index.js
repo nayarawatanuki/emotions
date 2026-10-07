@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Switch, Route } from 'react-router-dom';
 import App from './App';
 
@@ -24,7 +24,9 @@ import addTask3  from './frontend/pages/PsycAcess/addTask3/index';
 import KidProvider  from './frontend/context/kidContext';
 import TaskProvider  from './frontend/context/taskContext';
 
-ReactDOM.render(
+const root = createRoot(document.getElementById('root'));
+
+root.render(
   <KidProvider>
     <TaskProvider>
       <BrowserRouter>
@@ -48,6 +50,5 @@ ReactDOM.render(
         </Switch>
       </BrowserRouter>
     </TaskProvider>
-  </KidProvider>,
-  document.getElementById('root')
+  </KidProvider>
 );
