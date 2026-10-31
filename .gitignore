@@ -1,32 +1,26 @@
-# Dependencies
+# Dependencies and generated files in all project directories
 node_modules/
-
-# Production build
+dist/
 build/
+coverage/
+*.tsbuildinfo
 
-# Environment variables
+# Secrets and local configuration
 .env
 .env.*
 !.env.example
+*.local
 
-# Logs
+# Logs and operating system files
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Test coverage
-coverage/
-
-# OS files
 .DS_Store
 Thumbs.db
 
-# IDE / editor
-.vscode/
+# Editor and temporary files
 .idea/
-
-# Temporary files
 *.tmp
 *.temp
 *.swp
+
+# Local user uploads (including the archived application)
+uploads/
