@@ -146,6 +146,24 @@ pela desenvolvedora após a revisão das alterações e validações.
 
 ## Critérios de validação
 
+### Provisionamento MySQL local — aprovado para commit
+
+- Inspeção no Workbench: MySQL 8.0.46 na porta 3306, `partial_revokes=0`,
+  sem conflito com o banco ou a conta propostos.
+- Banco vazio `emotions_development` criado com autorização, usando
+  `utf8mb4` e `utf8mb4_0900_ai_ci`. O banco legado foi preservado.
+- Usuário `emotions_app@localhost` criado pela desenvolvedora; conexão TCP
+  real validada via TypeORM, com credenciais somente no `.env` ignorado pelo Git.
+- SHOW GRANTS da conta confirmou apenas SELECT, INSERT, UPDATE e DELETE
+  no nome exato do banco, além de USAGE global. Nenhuma tabela foi criada.
+- API compilada iniciou com banco habilitado e `/health` respondeu no Chrome.
+- Tipos, lint, 55 testes unitários, 10 testes HTTP e build passaram novamente.
+- Roteiros de inspeção e provisionamento e instruções de recuperação parcial
+  preparados em `backend/database/setup/`, sem senhas versionadas.
+- TLS remoto, entidades, migrations e persistência do domínio permanecem pendentes.
+
+### Verificações gerais
+
 - TypeScript e lint sem erros; build de produção funcionando.
 - Cenários de sucesso, erro e carregamento avaliados em cada funcionalidade.
 - Testes automatizados para regras e integrações relevantes.

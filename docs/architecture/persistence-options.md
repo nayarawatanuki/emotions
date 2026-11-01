@@ -1,15 +1,17 @@
 # Persistência MySQL — avaliação inicial
 
 Data da consulta: 1 de novembro de 2026.
-Status: TypeORM aprovado para a base de conexão. Provisionamento, esquema,
-migrations e migração de dados continuam pendentes de aprovação e implementação.
+Status: TypeORM aprovado; provisionamento local e conexão real validados.
+Esquema, migrations e migração de dados continuam pendentes de aprovação e implementação.
 
 ## Decisão e limites da primeira integração
 
 Instalados com versões exatas: `@nestjs/typeorm@12.0.2`, `typeorm@1.1.2` e
 `mysql2@3.24.6`. Os peers da integração aceitam Nest 12 e TypeORM 1.x;
 o requisito de Node do TypeORM aceita o Node 24.21.0 utilizado no projeto.
-Tipos, lint, testes e build verificam a base ESM; a conexão real ainda não foi validada.
+Tipos, lint, testes e build verificam a base ESM. A conexão real local foi
+validada com MySQL 8.0.46, banco separado vazio e usuário próprio sem privilégios
+administrativos. TLS remoto ainda não foi validado.
 
 A API só tenta conectar com `DB_ENABLED=true`, exige credenciais próprias e
 TLS remoto, e não executa sincronização, remoção de esquema ou migrations

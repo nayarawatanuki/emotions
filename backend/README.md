@@ -77,6 +77,10 @@ Serviços, modelos e DTOs entrarão junto com as funcionalidades que os utilizam
 
 ## Base de conexão MySQL
 
+O [roteiro de provisionamento local](database/setup/README.md) registra o progresso:
+banco vazio e usuário próprio provisionados com autorização; conexão real validada.
+O banco legado permanece preservado.
+
 Pacotes aprovados: `@nestjs/typeorm@12.0.2`, `typeorm@1.1.2` e `mysql2@3.24.6`.
 A conexão está desativada por padrão (`DB_ENABLED=false`), inclusive em produção:
 esta base ainda não está pronta para uso com dados reais. Os testes HTTP usam
@@ -92,7 +96,8 @@ explicitamente esse modo e não dependem de um MySQL instalado.
 | `DB_PASSWORD` | Sem padrão | Obrigatória; nunca deve ser versionada |
 | `DB_TLS` | `true` | `false` permitido somente em loopback fora de produção |
 
-O `.env.example` propõe `emotions_development` e `emotions_app`, ainda não criados.
+O `.env.example` usa os nomes `emotions_development` e `emotions_app`, já
+provisionados neste ambiente local; em outro ambiente, precisam de criação autorizada.
 O exemplo usa `DB_TLS=false` para desenvolvimento em `127.0.0.1`; ao mudar
 para um servidor remoto ou produção, configure `DB_TLS=true`. Nesse modo o
 certificado deve ser válido e confiável para o Node, sem desativar sua verificação.
@@ -115,9 +120,11 @@ por consulta. A conexão usa `utf8mb4`, datas em UTC e números grandes como str
 para evitar perda de precisão. Esses controles não substituem autorização,
 consultas parametrizadas e validações nas funcionalidades futuras.
 
-Nenhum banco, tabela, usuário ou dado foi criado ou alterado nesta etapa.
-Conexão real e TLS ainda precisam ser validados em ambiente isolado após
-aprovação do provisionamento. `/health` permanece uma verificação de liveness;
+Após aprovação do provisionamento, o banco local `emotions_development` e
+o usuário `emotions_app@localhost` foram criados; a conexão TCP via TypeORM,
+as permissões e a ausência de tabelas foram conferidas. O banco antigo não foi
+alterado. Não há entidades ou migrations aplicadas. TLS remoto ainda precisa
+ser validado em ambiente próprio. `/health` permanece uma verificação de liveness;
 não monitora a conexão após a inicialização.
 
 Referências: [integrações do Nest](https://docs.nestjs.com/techniques/database)
