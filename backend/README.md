@@ -46,8 +46,15 @@ src/
 │   └── middlewares/security-headers.middleware.ts
 ├── config/
 │   ├── configure-app.ts
+│   ├── database-environment.ts
+│   ├── database-environment.spec.ts
 │   ├── environment.ts
 │   └── environment.spec.ts
+├── database/
+│   ├── database-options.ts
+│   ├── database-options.spec.ts
+│   ├── database.module.ts
+│   └── database.module.spec.ts
 ├── modules/
 │   └── health/
 │       ├── health.controller.ts
@@ -62,9 +69,59 @@ test/
 - `configure-app.ts`: controles HTTP compartilhados pela aplicação e pelos testes.
 - `AppModule`: compõe os módulos da aplicação.
 - `HealthModule`: oferece somente a verificação de funcionamento do processo.
+- `DatabaseModule`: cria a conexão TypeORM/MySQL quando explicitamente habilitada;
+  o Nest gerencia seu encerramento. Não contém entidades ou migrations nesta etapa.
 - `common/`: comportamentos compartilhados, sem regras de negócio dos módulos.
 
 Serviços, modelos e DTOs entrarão junto com as funcionalidades que os utilizam.
+
+## Base de conexão MySQL
+
+Pacotes aprovados: `@nestjs/typeorm@12.0.2`, `typeorm@1.1.2` e `mysql2@3.24.6`.
+A conexão está desativada por padrão (`DB_ENABLED=false`), inclusive em produção:
+esta base ainda não está pronta para uso com dados reais. Os testes HTTP usam
+explicitamente esse modo e não dependem de um MySQL instalado.
+
+| Variável | Padrão | Regra quando a conexão está habilitada |
+| --- | --- | --- |
+| `DB_ENABLED` | `false` | Somente `true` ou `false` |
+| `DB_HOST` | Sem padrão | IP ou hostname, sem protocolo ou porta |
+| `DB_PORT` | `3306` | Inteiro entre 1 e 65535 |
+| `DB_NAME` | Sem padrão | Até 64 letras, números ou sublinhados; começa com letra |
+| `DB_USER` | Sem padrão | Usuário próprio da aplicação; `root` é rejeitado |
+| `DB_PASSWORD` | Sem padrão | Obrigatória; nunca deve ser versionada |
+| `DB_TLS` | `true` | `false` permitido somente em loopback fora de produção |
+
+O `.env.example` propõe `emotions_development` e `emotions_app`, ainda não criados.
+O exemplo usa `DB_TLS=false` para desenvolvimento em `127.0.0.1`; ao mudar
+para um servidor remoto ou produção, configure `DB_TLS=true`. Nesse modo o
+certificado deve ser válido e confiável para o Node, sem desativar sua verificação.
+Se houver uma autoridade certificadora privada, será necessário planejar a
+configuração de confiança antes de conectar.
+
+Não reutilize credenciais administrativas nem as credenciais do código antigo.
+Rejeitar o nome `root` não comprova os privilégios: o usuário deverá ser provisionado
+com permissões mínimas para o novo banco. Um usuário separado deverá executar
+migrations futuras; o usuário da API não deve receber permissões de DDL.
+
+Ao habilitar `DB_ENABLED=true`, a API valida as variáveis e tenta conectar antes
+de escutar HTTP. Falhas impedem a inicialização e recebem uma mensagem genérica,
+sem reproduzir credenciais ou erros do driver. Há uma tentativa de conexão,
+com timeout de conexão de 5 segundos e pool de até cinco conexões.
+
+Controles definidos: `synchronize=false`, `dropSchema=false`, `migrationsRun=false`,
+sem entidades ou migrations registradas, sem logs de SQL e sem múltiplas instruções
+por consulta. A conexão usa `utf8mb4`, datas em UTC e números grandes como strings
+para evitar perda de precisão. Esses controles não substituem autorização,
+consultas parametrizadas e validações nas funcionalidades futuras.
+
+Nenhum banco, tabela, usuário ou dado foi criado ou alterado nesta etapa.
+Conexão real e TLS ainda precisam ser validados em ambiente isolado após
+aprovação do provisionamento. `/health` permanece uma verificação de liveness;
+não monitora a conexão após a inicialização.
+
+Referências: [integrações do Nest](https://docs.nestjs.com/techniques/database)
+e [driver MySQL do TypeORM](https://typeorm.io/docs/drivers/mysql/).
 
 ## Contrato atual
 
@@ -105,7 +162,7 @@ avaliada conforme as próximas funcionalidades forem implementadas.
 - Não há CORS liberado, arquivos estáticos ou telemetria externa configurados.
 
 Esta base não contém autenticação, autorização, controle de tentativas,
-persistência, validação de DTOs ou processamento de uploads. Não deve ser
+entidades persistidas, validação de DTOs ou processamento de uploads. Não deve ser
 apresentada como pronta para atender dados de crianças. HTTPS e configuração
 de proxy serão definidos para o ambiente de implantação; não se deve presumir
 que estes cabeçalhos substituam esses controles.

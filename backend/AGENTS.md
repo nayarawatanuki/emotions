@@ -23,4 +23,6 @@ Seguir integralmente `../.codex/agents.md` e as instruções da desenvolvedora.
 ## Estado atual
 
 A base oferece somente liveness em `/health`; esse endpoint não verifica o banco.
-Autenticação, autorização e persistência ainda não estão implementadas.
+Existe uma base de conexão TypeORM/MySQL, desativada por padrão.
+Autenticação, autorização, entidades e migrations ainda não estão implementadas.
+Não habilitar a conexão ou provisionar bancos sem autorização específica.

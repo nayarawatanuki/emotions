@@ -1,7 +1,21 @@
 # Persistência MySQL — avaliação inicial
 
 Data da consulta: 1 de novembro de 2026.
-Status: recomendação preliminar; ORM e dependências ainda não aprovados.
+Status: TypeORM aprovado para a base de conexão. Provisionamento, esquema,
+migrations e migração de dados continuam pendentes de aprovação e implementação.
+
+## Decisão e limites da primeira integração
+
+Instalados com versões exatas: `@nestjs/typeorm@12.0.2`, `typeorm@1.1.2` e
+`mysql2@3.24.6`. Os peers da integração aceitam Nest 12 e TypeORM 1.x;
+o requisito de Node do TypeORM aceita o Node 24.21.0 utilizado no projeto.
+Tipos, lint, testes e build verificam a base ESM; a conexão real ainda não foi validada.
+
+A API só tenta conectar com `DB_ENABLED=true`, exige credenciais próprias e
+TLS remoto, e não executa sincronização, remoção de esquema ou migrations
+automaticamente. Os detalhes estão no [README do backend](../../backend/README.md).
+Nenhum banco antigo foi acessado ou alterado. A comparação abaixo registra
+a avaliação que orientou a escolha, sem significar aprovação de todo o esquema.
 
 ## Requisitos do Emotions
 

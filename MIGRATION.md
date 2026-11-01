@@ -120,6 +120,30 @@ registra duração por tentativa e total, sem tempo máximo para responder.
 Nenhuma entidade persistida, dependência, migration ou dado do banco foi alterado.
 Propostas ainda não confirmadas estão identificadas como recomendações.
 
+## Base de conexão TypeORM/MySQL — aprovada para commit
+
+- Pacotes aprovados e instalados: `@nestjs/typeorm@12.0.2`, `typeorm@1.1.2`
+  e `mysql2@3.24.6`, com versões exatas e lockfile atualizado pelo Yarn.
+- Configuração de banco validada, conexão desativada por padrão e testes HTTP
+  independentes de um servidor MySQL.
+- TLS com verificação de certificado; conexão sem TLS somente em loopback
+  fora de produção. Credenciais obrigatórias e rejeição do usuário `root`.
+- Pool de até cinco conexões, timeout de conexão de cinco segundos, UTC,
+  `utf8mb4`, números grandes como strings e múltiplas instruções desativadas.
+- Sincronização, remoção de esquema, migrations automáticas e logs SQL desativados.
+- Tipos, lint, 55 testes unitários, 10 testes HTTP e build passaram.
+- API compilada conferida no Chrome: `/health` retorna `{"status":"ok"}`.
+- Falha de conexão conferida com porta local indisponível e credenciais fictícias:
+  inicialização encerrada com código 1, sem expor detalhes privados do driver.
+- Auditoria reportou zero vulnerabilidades conhecidas entre 377 dependências.
+  Permanecem os avisos documentados de Yarn Classic e da resolução de minimatch.
+
+Nenhum banco, usuário, tabela, migration ou dado foi criado ou alterado.
+Ainda falta validar conexão real e TLS no ambiente isolado, após aprovação
+do provisionamento; a base de conexão não equivale à persistência do domínio.
+Não houve mudança no frontend. Commit e push desta etapa foram autorizados
+pela desenvolvedora após a revisão das alterações e validações.
+
 ## Critérios de validação
 
 - TypeScript e lint sem erros; build de produção funcionando.

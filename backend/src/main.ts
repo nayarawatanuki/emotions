@@ -7,9 +7,13 @@ import { readEnvironment } from './config/environment.js';
 
 async function bootstrap() {
   const environment = readEnvironment(process.env);
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bodyParser: false,
-  });
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.register(process.env),
+    {
+      bodyParser: false,
+      abortOnError: false,
+    },
+  );
 
   configureApp(app);
   app.enableShutdownHooks();
@@ -20,7 +24,7 @@ try {
   await bootstrap();
 } catch {
   Logger.error(
-    'Não foi possível iniciar a API. Verifique as configurações e a disponibilidade da porta.',
+    'Não foi possível iniciar a API. Verifique as configurações, a porta e a conexão com o banco, se habilitada.',
     'Bootstrap',
   );
   process.exitCode = 1;

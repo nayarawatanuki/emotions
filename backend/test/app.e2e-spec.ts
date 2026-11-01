@@ -21,7 +21,7 @@ describe('Emotions API (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [AppModule.register({ DB_ENABLED: 'false' })],
       controllers: [FailureController],
     }).compile();
 
