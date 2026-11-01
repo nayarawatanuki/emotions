@@ -18,6 +18,7 @@ Não se deve copiar automaticamente a implementação anterior.
 - [x] Validar o build e o lint da base e visualizar o template no Chrome.
 - [x] Criar a apresentação do Emotions e a base de rotas públicas.
 - [x] Preparar o backend NestJS/TypeScript modular com configuração por ambiente.
+- [ ] Revisar o modelo de dados, as permissões e a integração de persistência.
 - [ ] Implementar autenticação e autorização no servidor.
 - [ ] Migrar os formulários de acesso e integrar as sessões.
 - [ ] Migrar cadastro, listagem, edição e exclusão de crianças.
@@ -52,7 +53,7 @@ acessibilidade. O código antigo continua sujeito às limitações abaixo.
 
 Commit aprovado: `b2aa361fe`.
 
-## Base do backend — aguardando aprovação do commit
+## Base do backend — concluída
 
 - Template NestJS criado com ESM, Express, Vitest e Oxlint.
 - Módulo `Health` com `GET /health`, sem acesso ao banco.
@@ -80,6 +81,44 @@ Não foi comprovada compatibilidade com todos os comandos possíveis da CLI.
 O nome evita colisão com o comando nativo `yarn check` do Yarn Classic.
 
 O backend ainda não oferece autenticação, autorização, persistência ou uploads.
+
+Commit aprovado: `d04fd3aa0`.
+
+## Modelo de dados e permissões — proposta em revisão
+
+A desenvolvedora confirmou: um profissional acompanha várias crianças e cada
+criança pertence a exatamente um profissional.
+
+Também confirmou:
+
+- Somente o ADM cadastra os profissionais.
+- O profissional cria as atividades especialmente para cada criança, sem
+  atividades prontas fornecidas pelo sistema.
+- Cada atividade possui exatamente uma recompensa e permite até três tentativas por execução.
+- O profissional pode resetar a atividade, liberando uma nova execução sem apagar
+  os registros anteriores, somente quando a última execução estiver finalizada,
+  com acerto ou após três erros. Tentativas, tempo e resultado pertencem a cada execução.
+- Após três erros, a criança recebe uma imagem carinhosa e mensagem de incentivo.
+- Todas as tentativas têm seu tempo contabilizado, sem limite de tempo ou
+  pressão por velocidade no fluxo infantil.
+
+O fluxo antigo foi conferido: a recompensa aparece no ramo de acerto, mas não
+existe encerramento após três erros. O contador pode ser reiniciado e a chamada
+que atualizaria o estado da atividade está comentada. A proposta documenta essas
+lacunas. O desfecho definido é encerrar a execução após o terceiro erro com imagem
+e mensagem de acolhimento, preservando o resultado e impedindo reinício automático.
+O reset é uma ação explícita do profissional, somente após a finalização e sem
+execução aberta. Não interrompe nem zera tentativas em andamento.
+A recompensa de acerto e o feedback de acolhimento são distintos. A proposta
+registra duração por tentativa e total, sem tempo máximo para responder.
+
+- `docs/architecture/data-model.md`: relações, tipos, integridade, escopo de
+  autorização, correspondência com o código antigo e decisões pendentes.
+- `docs/architecture/persistence-options.md`: comparação de integrações MySQL,
+  recomendação preliminar e critérios antes de instalar ou migrar.
+
+Nenhuma entidade persistida, dependência, migration ou dado do banco foi alterado.
+Propostas ainda não confirmadas estão identificadas como recomendações.
 
 ## Critérios de validação
 
