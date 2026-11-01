@@ -1,0 +1,16 @@
+.not-found-content {
+  max-width: 680px;
+  padding-block: 80px;
+}
+
+.not-found-content h1 {
+  margin-block: 16px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.not-found-content > p:last-of-type {
+  max-width: 520px;
+  color: #526461;
+}
