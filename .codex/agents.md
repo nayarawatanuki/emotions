@@ -147,10 +147,10 @@ O projeto pode passar por modernizações profundas quando justificadas. Não de
 
 ### Stack conhecida
 
-- Frontend: Next.js, React e JavaScript.
-- Backend: Node.js, Express e Sequelize.
+- Frontend: React, Vite e TypeScript.
+- Backend: Node.js, NestJS, Express e TypeScript.
 - Banco de dados: MySQL.
-- Uploads: Multer.
+- Persistência e uploads: migração e integração serão definidas nas etapas aprovadas; o código arquivado usa Sequelize e Multer.
 - Gerenciamento de dependências: Yarn.
 
 Confirmar versões, estrutura e configurações nos arquivos reais antes de recomendar mudanças.
@@ -174,12 +174,13 @@ Adotar organização inspirada em Atomic Design, com pragmatismo.
 
 ### Backend
 
-Manter MVC como padrão arquitetural.
+Manter a separação de responsabilidades do MVC, com o backend organizado em módulos de funcionalidade do NestJS, conforme decisão aprovada pela desenvolvedora.
 
-- Separar adequadamente rotas, controllers, models e responsabilidades complementares.
+- Usar módulos para agrupar funcionalidades, controllers para receber requisições e serviços para regras de negócio; manter modelos e persistência separados.
+- Centralizar configurações em `src/config/` e comportamentos compartilhados em `src/common/`, sem criar abstrações ou pastas sem necessidade.
 - Evitar regras de negócio diretamente nas rotas.
 - Manter validações e tratamento de erros consistentes.
-- Respeitar as convenções do Sequelize.
+- Na migração da persistência, respeitar as convenções do ORM aprovado e revisar a compatibilidade com os modelos e migrations existentes.
 - Não modificar estrutura ou dados do banco sem autorização.
 
 ---

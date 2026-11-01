@@ -17,7 +17,7 @@ Não se deve copiar automaticamente a implementação anterior.
 - [x] Habilitar TypeScript estrito e verificações de acessibilidade no Oxlint.
 - [x] Validar o build e o lint da base e visualizar o template no Chrome.
 - [x] Criar a apresentação do Emotions e a base de rotas públicas.
-- [ ] Preparar o backend TypeScript com MVC e configuração por ambiente.
+- [x] Preparar o backend NestJS/TypeScript modular com configuração por ambiente.
 - [ ] Implementar autenticação e autorização no servidor.
 - [ ] Migrar os formulários de acesso e integrar as sessões.
 - [ ] Migrar cadastro, listagem, edição e exclusão de crianças.
@@ -31,7 +31,7 @@ Não se deve copiar automaticamente a implementação anterior.
 As etapas podem ser subdivididas em commits menores conforme a implementação.
 Alterações de estrutura ou dados do banco exigem autorização específica.
 
-## Página inicial e base de navegação — aguardando revisão
+## Página inicial e base de navegação — concluída
 
 - Página em português, com marca e ilustração SVG próprias.
 - Tema inspirado nas conexões entre peças e nas diferentes emoções.
@@ -49,6 +49,37 @@ vulnerabilidades conhecidas entre 93 dependências.
 
 Não foi realizada avaliação com leitor de tela nem uma auditoria completa de
 acessibilidade. O código antigo continua sujeito às limitações abaixo.
+
+Commit aprovado: `b2aa361fe`.
+
+## Base do backend — aguardando aprovação do commit
+
+- Template NestJS criado com ESM, Express, Vitest e Oxlint.
+- Módulo `Health` com `GET /health`, sem acesso ao banco.
+- Ambiente validado, com endereço padrão `127.0.0.1` e porta `3000`.
+- Configuração HTTP compartilhada entre servidor e testes.
+- JSON limitado a 16 KB, sem aceitar corpos comprimidos.
+- Respostas de erro padronizadas, sem detalhes internos.
+- Cabeçalhos básicos de proteção e remoção de identificação do Express.
+- 19 testes de ambiente e 10 testes HTTP passaram.
+- Verificação de tipos, lint com análise de tipos e build passaram.
+- `/health` conferido no Chrome usando o servidor compilado.
+
+A auditoria inicial reportou 24 ocorrências: 8 altas, 11 moderadas e 5 baixas.
+Os caminhos apontam para `@nestjs/mau` (23) e `@nestjs/cli > minimatch` (1).
+Com aprovação da desenvolvedora, Mau e seu script de deploy foram removidos.
+A dependência da CLI recebeu a resolução seletiva `minimatch@11.0.3`.
+A auditoria final reportou zero vulnerabilidades conhecidas entre 351 dependências.
+
+A resolução cruza uma versão principal e produz um aviso explícito do Yarn.
+Build, geração simulada de módulo e padrões de glob usados pela CLI foram
+verificados. A resolução deve ser reavaliada quando a CLI incorporar a correção.
+Não foi comprovada compatibilidade com todos os comandos possíveis da CLI.
+
+`yarn run verify` reúne tipos, lint, testes unitários, testes HTTP e build.
+O nome evita colisão com o comando nativo `yarn check` do Yarn Classic.
+
+O backend ainda não oferece autenticação, autorização, persistência ou uploads.
 
 ## Critérios de validação
 
