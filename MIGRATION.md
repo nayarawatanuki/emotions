@@ -195,9 +195,28 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Commit e push desta etapa foram aprovados após a revisão do esquema unificado
   e dos resultados das verificações.
 
+## Persistência de autenticação — aplicada e validada, aguardando commit
+
+- Aprovados entrega manual de links pelo ADM, ativação em 24 h e recuperação em 30 min.
+- Adicionadas entidades de sessões, tokens profissionais e contadores por escopo;
+  digests privados, índices de expiração e restrições de datas e papéis.
+- Preparado hash anulável para contas não ativas, com CHECK para hash não vazio
+  em contas ativas. O serviço continua responsável pela validade criptográfica.
+- Terceira migration congelada aplicada com autorização, preflights e reversão
+  protegida. ALTER temporário apenas em accounts, já revogado. Nenhum dado real
+  foi criado ou modificado; snapshot prévio somente da estrutura salvo localmente.
+- Tipos, lint, build, 134 testes unitários, 10 HTTP e 43 MySQL passaram.
+  As doze tabelas da aplicação continuaram vazias após rollback das fixtures.
+- Todas as CHECKs mapeadas ENFORCED, zero diferenças de esquema, três migrations
+  aplicadas e zero mudanças ao repetir o runner após revogar o ALTER temporário.
+- API inicializada com MySQL; Chrome confirmou `/health` com `{"status":"ok"}`.
+  A instância temporária foi encerrada. O down não foi executado no MySQL.
+- Nenhuma dependência ou lockfile alterado; login HTTP e emissão/consumo de links
+  continuam para etapas posteriores.
+
 ## Critérios de validação
 
-### Autenticação — hash e criação do primeiro ADM implementados, em revisão
+### Autenticação — hash e criação do primeiro ADM concluídos (`0513188`)
 
 - Revisados os campos e estados atuais de `accounts` e o cadastro profissional.
 - Implementados Argon2id assíncrono nativo do Node 24.21.0 e comando interativo
@@ -208,8 +227,8 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Documentados primeiro acesso, recuperação, sessões revogáveis, CSRF, limites,
   futuras alterações de banco e etapas de implementação em
   `docs/architecture/authentication.md`.
-- Canal de entrega dos links de primeiro acesso/recuperação solicitado à
-  desenvolvedora; recomendação inicial de entrega pelo ADM, sem coleta de e-mail.
+- Entrega manual dos links pelo ADM aprovada na preparação da persistência
+  de autenticação, sem coleta de e-mail nesta etapa.
 - Medição exploratória nativa com dados sintéticos: 78, 71 e 70 ms por hash com
   64 MiB, três passagens e paralelismo um. Não representa teste de carga.
 - Nenhuma dependência, endpoint, migration ou estrutura de banco foi alterada.

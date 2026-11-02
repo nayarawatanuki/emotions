@@ -5,7 +5,7 @@ import type { RecordFields } from '../../../database/record-columns.js';
 export interface Account extends RecordFields {
   name: string;
   username: string;
-  passwordHash: string;
+  passwordHash: string | null;
   role: 'administrator' | 'professional' | 'child';
   status: 'pending' | 'active' | 'suspended';
   lastSignedInAt: Date | null;
@@ -25,6 +25,7 @@ export const AccountEntity = new EntitySchema<Account>({
     },
     passwordHash: {
       name: 'password_hash',
+      nullable: true,
       type: 'varchar',
       length: 255,
       select: false,
@@ -53,6 +54,11 @@ export const AccountEntity = new EntitySchema<Account>({
   ],
   foreignKeys: [],
   checks: [
+    {
+      name: 'ck_accounts_password_state',
+      expression:
+        "(password_hash IS NULL AND status <> 'active') OR (password_hash IS NOT NULL AND CHAR_LENGTH(password_hash) > 0)",
+    },
     {
       name: 'ck_accounts_normalized_username',
       expression:

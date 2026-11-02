@@ -30,6 +30,9 @@ describe('domain persistence metadata', () => {
     expect(entities.map((item) => item.tableName).sort()).toEqual(
       [
         'accounts',
+        'auth_sessions',
+        'account_tokens',
+        'auth_rate_limits',
         'professionals',
         'children',
         'files',
@@ -134,5 +137,68 @@ describe('domain persistence metadata', () => {
       'result_id',
       'activity_id',
     ]);
+  });
+
+  it('keeps authentication digests private and indexed without storing raw credentials', () => {
+    for (const [table, property] of [
+      ['auth_sessions', 'sessionDigest'],
+      ['account_tokens', 'tokenDigest'],
+      ['auth_rate_limits', 'keyDigest'],
+    ] as const) {
+      const metadata = entity(table);
+      const digest = metadata.columns.find(
+        (column) => column.propertyName === property,
+      );
+      expect(digest).toMatchObject({
+        isSelect: false,
+        type: 'char',
+        length: '64',
+        charset: 'ascii',
+        collation: 'ascii_bin',
+      });
+      expect(
+        metadata.indices.some(
+          (index) => index.isUnique && index.columns.includes(digest!),
+        ),
+      ).toBe(true);
+      expect(
+        metadata.columns.some((column) =>
+          ['token', 'sessionToken', 'ipAddress', 'username'].includes(
+            column.propertyName,
+          ),
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it('permits pending accounts without a password but defines the active account constraint', () => {
+    expect(
+      entity('accounts').columns.find(
+        (column) => column.propertyName === 'passwordHash',
+      )?.isNullable,
+    ).toBe(true);
+    expect(
+      entity('accounts').checks.find(
+        (check) => check.name === 'ck_accounts_password_state',
+      )?.expression,
+    ).toBe(
+      "(password_hash IS NULL AND status <> 'active') OR (password_hash IS NOT NULL AND CHAR_LENGTH(password_hash) > 0)",
+    );
+  });
+
+  it('binds professional access tokens to an administrator issuer', () => {
+    const tokens = entity('account_tokens');
+    expect(
+      tokens.foreignKeys.map((key) => key.referencedEntityMetadata.tableName),
+    ).toEqual(['accounts', 'accounts']);
+    expect(tokens.foreignKeys.every((key) => key.columns.length === 2)).toBe(
+      true,
+    );
+    expect(
+      tokens.checks.find((check) => check.name === 'ck_account_tokens_roles')
+        ?.expression,
+    ).toBe(
+      "account_role = 'professional' AND issued_by_role = 'administrator'",
+    );
   });
 });

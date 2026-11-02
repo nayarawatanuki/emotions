@@ -1,4 +1,7 @@
-import { createMigrationOptions } from './migration-options.js';
+import {
+  databaseMigrations,
+  createMigrationOptions,
+} from './migration-options.js';
 
 const environment = {
   DB_ENABLED: 'true',
@@ -53,5 +56,15 @@ describe('migration configuration', () => {
     expect(() =>
       createMigrationOptions({ ...environment, DB_ENABLED: 'false' }),
     ).toThrow('Habilite');
+  });
+
+  it('registers the authentication migration after the already applied migrations', () => {
+    expect(databaseMigrations.map((Migration) => new Migration().name)).toEqual(
+      [
+        'InitialDomainSchema1793520000000',
+        'UnifyActivityResults1793520001000',
+        'AddAuthenticationPersistence1793520002000',
+      ],
+    );
   });
 });

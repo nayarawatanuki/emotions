@@ -4,8 +4,9 @@ Consulta técnica: 2 de novembro de 2026. O primeiro incremento, aprovado pela
 desenvolvedora, implementa hash e criação local do primeiro ADM. Nenhuma conta
 real foi criada, nenhuma dependência foi adicionada e nenhuma estrutura de
 banco foi alterada.
-As seções seguintes continuam como propostas; o canal de entrega do primeiro
-acesso ainda aguarda confirmação.
+O desenho de persistência e a entrega manual dos links pelo ADM foram aprovados.
+A terceira migration foi aplicada e validada no MySQL local. Login HTTP, convites
+e recuperação ainda não estão implementados.
 
 ## Estado atual e direção
 
@@ -24,7 +25,7 @@ O acesso adulto será entregue primeiro. O fluxo infantil será preservado e
 protegido em etapa própria; não aceitar automaticamente o código curto antigo
 como segredo forte nem disponibilizar login infantil pelo endpoint adulto.
 
-## 1. Senhas e primeiro ADM — implementado, aguardando revisão
+## 1. Senhas e primeiro ADM — implementado e validado
 
 Usar `crypto.argon2('argon2id', ...)` assíncrono, presente no Node 24.21.0
 instalado. Não é necessário instalar uma biblioteca de hash nesta etapa.
@@ -83,7 +84,7 @@ após a revisão do comando.
 
 ## 2. Cadastro, ativação e recuperação do profissional
 
-Recomendação inicial, aguardando confirmação do canal de entrega:
+Fluxo aprovado: entrega manual do link pelo ADM, por um canal confiável.
 
 | Operação | Fluxo proposto |
 | --- | --- |
@@ -100,8 +101,8 @@ ou integração. O cadastro atual não tem e-mail; não adicionar esse campo ou
 enviar mensagens automaticamente sem essa decisão.
 
 Tokens propostos: 32 bytes aleatórios; guardar somente digest SHA-256, finalidade,
-conta, emissor, expiração e consumo/revogação. Proposta de validade: ativação
-24 horas e recuperação 30 minutos. São valores de produto a aprovar.
+conta, emissor, expiração e consumo/revogação. Validades aprovadas: ativação
+24 horas e recuperação 30 minutos. Esses prazos serão aplicados pelos serviços.
 Uma emissão revoga links anteriores da mesma finalidade. O consumo deve ser
 atômico e permitir somente um uso, mesmo sob concorrência.
 
@@ -143,32 +144,82 @@ O timeout de sessão não registra erro, não consome tentativa e não reinicia 
 atividade. A realização e suas tentativas ficam preservadas para retomada.
 Os prazos infantis de acesso serão tratados em sua etapa, respeitando esse requisito.
 
-## 4. Persistência que será necessária — ainda não criada
+## 4. Persistência aplicada e validada
 
-| Alteração proposta | Finalidade |
+| Alteração aplicada | Finalidade |
 | --- | --- |
 | `auth_sessions` | Conta, digest único da sessão, datas de início/atividade/expiração/revogação |
 | `account_tokens` | Ativação e recuperação com finalidade, digest único, emissor, prazo e consumo |
 | `auth_rate_limits` | Contadores/janelas compartilhados entre processos, sem depender da memória de uma instância |
 | `accounts.password_hash` | Permitir ausência enquanto pendente; exigir hash para conta ativa por CHECK |
 
-Uma conta pendente ainda não tem senha definida. Não gravar hash fictício ou
-senha escondida apenas para satisfazer NOT NULL. A mudança de nulidade só será
-necessária na etapa de convites, com migration revisada e executada separadamente.
-As contas ativas continuam exigindo credencial protegida.
+### Estrutura aplicada
 
-Planejar índices, retenção e limpeza de sessões/tokens/limites expirados junto
-com essa migration. Identificadores de limite não devem expor username ou IP
-em texto simples; a estratégia de pseudonimização e sua chave serão revisadas.
-Eventos de segurança terão logs estruturados com dados mínimos, sem telemetria
-externa; sua retenção precisa ser definida antes da implantação.
+- `auth_sessions`: conta, digest único da sessão, última atividade, expiração
+  por inatividade, expiração absoluta e revogação. CHECKs conferem a ordem das
+  datas e impedem que a expiração por inatividade ultrapasse a absoluta.
+- `account_tokens`: finalidade `activation` ou `password_reset`, conta profissional,
+  ADM emissor, digest único, expiração, consumo e revogação. FKs compostas e CHECK
+  restringem os papéis; consumo e revogação são mutuamente exclusivos. O consumo
+  registrado precisa estar dentro da validade. Isso não verifica o relógio atual:
+  rejeitar uso expirado e consumir somente uma vez exige transação no serviço.
+- `auth_rate_limits`: escopo, digest da chave, janela, contador unsigned e bloqueio
+  temporário. Uma chave tem um contador por escopo; escopos iniciais são
+  `login_origin`, `login_origin_account` e `token_redemption`. Não há IP nem username
+  em texto simples. Atualização atômica, limites e resposta 429 ainda serão implementados.
+- `accounts.password_hash`: agora anulável no modelo. O CHECK permite
+  ausência somente enquanto a conta não está ativa e rejeita hash vazio. Uma conta
+  suspensa pode continuar sem senha, inclusive se suspensa antes da ativação.
+  Contas ativas precisam de valor não vazio; o serviço continua responsável por
+  produzir e verificar um hash criptográfico válido.
+
+Todos os novos registros usam UUID e datas UTC, sem exclusão em cascata.
+Digests de 64 caracteres usam ASCII com comparação binária e `select: false`.
+O modelo não guarda o segredo original nem fornece DTOs públicos. O tamanho no
+banco não substitui a validação hexadecimal pelo serviço.
+
+Sessões e links usarão SHA-256 de segredos aleatórios de 32 bytes. Para limites
+baseados em IP/username, a direção é HMAC-SHA-256 com chave própria compartilhada
+entre instâncias; um hash simples de identificadores previsíveis não os protege
+adequadamente. Essa configuração ainda não foi criada, e a retenção/limpeza dos
+registros será definida antes de expor os endpoints. Os índices de expiração
+preparam as consultas de limpeza, sem executar exclusões automáticas nesta etapa.
+
+### Migration e limites da validação
+
+`1793520002000-add-authentication-persistence.ts` contém SQL congelado, sem
+reescrever as migrations já aplicadas. Antes do DDL, verifica contas incompatíveis
+com o novo CHECK e colisão com os nomes das três tabelas. Não altera valores de
+contas nem importa dados antigos. MySQL faz commit implícito de DDL: uma falha
+intermediária exige inspeção antes de qualquer nova execução, sem repetição cega.
+
+A reversão recusa, antes de qualquer DROP, tabelas novas com registros ou qualquer
+conta com hash nulo. Não preenche senha fictícia para restaurar o NOT NULL.
+Concorrência operacional exige janela de manutenção e ausência de escritores;
+o bloqueio de migrations não bloqueia serviços comuns da API.
+
+O banco aplicado tem doze tabelas da aplicação e duas técnicas, alinhadas às
+doze entidades. `synchronize`, `migrationsRun` e `dropSchema` permanecem
+desativados. A aplicação usou ALTER temporário restrito a `accounts`, já
+revogado; a conta da API permaneceu sem DDL. Um snapshot local privado somente
+da estrutura foi salvo antes da operação, sem exportação de dados.
+
+Os dez testes reais novos passaram, cobrindo contas sem senha, digests privados,
+FKs dos papéis, digests únicos, datas e contadores por escopo. A suíte verifica
+primeiro se a migration está aplicada e exige banco local vazio, com fixtures
+em transações revertidas. Os 43 testes MySQL passaram; as doze tabelas da
+aplicação continuaram vazias. As CHECKs mapeadas foram conferidas como ENFORCED,
+e o ORM não encontrou diferenças de esquema. As três migrations constam como
+aplicadas; uma nova execução aplicou zero mudanças, já sem o ALTER temporário.
+A reversão não foi executada no MySQL; seus preflights foram testados offline.
 
 ## 5. Sequência de implementação e validação
 
-1. Aprovar hash e criação do primeiro ADM; implementar, testar, revisar e aprovar seu commit.
-2. Aprovar ativação/recuperação, tabelas e políticas; preparar a migration antes
-   de aplicá-la. Avaliar parsing de cookies, validação e limites e apresentar
-   qualquer dependência com versão exata antes de instalar.
+1. Hash e criação do primeiro ADM concluídos no commit `0513188`.
+2. Persistência e entrega manual aprovadas; migration aplicada e restrições
+   reais validadas. Commit da etapa aguarda revisão. Avaliar
+   parsing de cookies, validação e limites e apresentar qualquer dependência
+   com versão exata antes de instalar.
 3. Implementar login, consulta da sessão, logout e guards; testar revogação,
    expiração, sessão falsa, fixação, CSRF, enumeração e limites concorrentes.
 4. Implementar cadastro profissional exclusivo do ADM e convites, com testes

@@ -1,3 +1,4 @@
+import { AddAuthenticationPersistence1793520002000 } from './migrations/1793520002000-add-authentication-persistence.js';
 import type { DataSourceOptions } from 'typeorm';
 import { readDatabaseEnvironment } from '../config/database-environment.js';
 import { createDatabaseOptions } from './database-options.js';
@@ -7,6 +8,7 @@ import { UnifyActivityResults1793520001000 } from './migrations/1793520001000-un
 export const databaseMigrations = [
   InitialDomainSchema1793520000000,
   UnifyActivityResults1793520001000,
+  AddAuthenticationPersistence1793520002000,
 ];
 export const migrationsTableName = 'schema_migrations';
 

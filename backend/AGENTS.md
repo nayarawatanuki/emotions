@@ -30,5 +30,9 @@ e desfecho, foi aplicada e validada. Permissões temporárias foram revogadas.
 Hash Argon2id nativo e criação local do primeiro ADM estão implementados.
 Nenhum ADM real foi criado na validação; os testes usam fixtures revertidas.
 Login HTTP, sessões, autorização e serviços transacionais do domínio ainda não estão implementados.
+A terceira migration foi aplicada e validada: sessões, tokens, limites e hash
+anulável para contas não ativas. Existem doze tabelas da aplicação e duas
+técnicas, sem dados reais. O ALTER temporário em accounts foi revogado.
+A entrega de links pelo ADM e os prazos de ativação (24 h) e recuperação (30 min) foram aprovados.
 As migrations usam credenciais separadas das da API e exigem execução explícita.
 Não habilitar a conexão ou provisionar bancos sem autorização específica.

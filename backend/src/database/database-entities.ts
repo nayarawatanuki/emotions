@@ -1,3 +1,6 @@
+import { AuthSessionEntity } from '../modules/auth/entities/auth-session.entity.js';
+import { AccountTokenEntity } from '../modules/auth/entities/account-token.entity.js';
+import { AuthRateLimitEntity } from '../modules/auth/entities/auth-rate-limit.entity.js';
 import { AccountEntity } from '../modules/accounts/entities/account.entity.js';
 import { ProfessionalEntity } from '../modules/professionals/entities/professional.entity.js';
 import { StoredFileEntity } from '../modules/files/entities/stored-file.entity.js';
@@ -10,6 +13,9 @@ import { ActivityResultEntity } from '../modules/results/entities/activity-resul
 
 export const databaseEntities = [
   AccountEntity,
+  AuthSessionEntity,
+  AccountTokenEntity,
+  AuthRateLimitEntity,
   ProfessionalEntity,
   StoredFileEntity,
   ChildEntity,

@@ -416,6 +416,15 @@ produzir a mesma resposta pública de não encontrado. Tentativas de escrita
 também precisam de condição de escopo e verificação de linhas afetadas.
 Alterações concorrentes não podem contornar a autorização.
 
+## Persistência de autenticação aprovada e aplicada
+
+A terceira migration adicionou sessões, tokens profissionais e limites de acesso,
+com o hash anulável somente em contas não ativas. A entrega manual de links pelo
+ADM foi aprovada: ativação em 24 horas e recuperação em 30 minutos. O esquema
+aplicado tem doze tabelas da aplicação e duas técnicas, validado no MySQL local.
+Os [campos, restrições e limites de validação](authentication.md#4-persistência-aplicada-e-validada)
+estão documentados; não há endpoints novos nesta etapa.
+
 ## Direção proposta para autenticação
 
 O [desenho de autenticação](authentication.md) detalha a proposta de hash nativo,

@@ -87,6 +87,8 @@ describe('first administrator creation on real MySQL with rolled-back fixtures',
       .addSelect('account.passwordHash')
       .where('account.id = :id', { id: visible.id })
       .getOneOrFail();
+    if (stored.passwordHash === null)
+      throw new Error('Missing fixture password hash.');
     expect(
       await new PasswordService().verify(input.password, stored.passwordHash),
     ).toBe(true);

@@ -1,4 +1,4 @@
-# Esquema do Emotions — unificação em `activity_results`
+# Esquema do Emotions — domínio e autenticação
 
 O esquema inicial e a segunda migration foram aplicados e validados. Conforme
 aprovação da desenvolvedora, realização e desfecho ficam na tabela única
@@ -15,7 +15,7 @@ históricos existentes: não deve ser adaptada para descartar registros reais.
 
 - `src/modules/<funcionalidade>/entities/`: interfaces e schemas TypeORM tipados.
 - `src/database/record-columns.ts`: UUID e datas de auditoria comuns.
-- `src/database/database-entities.ts`: registro explícito das nove entidades.
+- `src/database/database-entities.ts`: registro explícito das nove entidades de domínio e três de autenticação.
 - `src/database/migrations/`: SQL congelado e versionado, independente de
   futuras alterações nos schemas das entidades.
 - `src/database/migration-options.ts`: configuração separada de migrations.
@@ -51,7 +51,7 @@ sendo tratado como horário de evento em UTC.
 
 O executor do TypeORM criará também `schema_migrations`, para seu histórico
 técnico, e `typeorm_metadata`, para as expressões das duas colunas geradas.
-O esquema atual tem **nove tabelas de domínio e duas técnicas**, sem cadastros ou atividades
+Após a segunda migration, o esquema tinha nove tabelas de domínio e duas técnicas, sem cadastros ou atividades
 demonstrativas. A migration registra somente os dois metadados técnicos;
 nenhum dado de criança ou conta é inserido.
 
@@ -134,13 +134,64 @@ Antes de liberar o fluxo, os serviços ainda precisam garantir:
   isolada imutável nem implementa sozinho uma política de retenção.
 - Feedback carinhoso obrigatório no encerramento sem acerto. Os campos opcionais
   permitem configurá-lo sem decidir automaticamente sua origem ou biblioteca.
-- Algoritmo e parâmetros de hash, ativação/recuperação, criação do primeiro
-  ADM e segurança da sessão. Não existem contas ou senhas padrão/seeds.
+- Ativação/recuperação e segurança da sessão. Hash Argon2id nativo e comando
+  para o primeiro ADM já estão implementados, sem contas ou senhas padrão/seeds.
 - Política de pausas: `timing_source` distingue tempo decorrido do servidor e
   tempo ativo informado pelo cliente, sem escolher automaticamente um deles.
 
 Esta etapa prepara a estrutura completa; não declara essas funcionalidades
 implementadas nem representa os registros como comprovação de evolução clínica.
+
+## Terceira migration — autenticação aplicada e validada
+
+O código contém `AddAuthenticationPersistence1793520002000`, com três tabelas
+novas (`auth_sessions`, `account_tokens`, `auth_rate_limits`) e um CHECK para
+proteger contas ativas sem senha. `accounts.password_hash` é anulável para
+contas não ativas. A aplicação foi autorizada e concluída; o estado atual é
+de doze tabelas da aplicação e duas técnicas, todas as tabelas de aplicação vazias.
+Consulte [campos e regras](../../docs/architecture/authentication.md#4-persistência-aplicada-e-validada).
+
+A conta de migrations recebeu ALTER **somente em
+`emotions_development.accounts`**, temporariamente, além dos privilégios
+existentes. O ALTER já foi revogado e os grants foram conferidos no Workbench.
+O usuário da API permaneceu sem DDL; seus privilégios de dados abrangem as
+novas tabelas. O runner aplicou zero mudanças na repetição após a revogação.
+A reversão não será executada: exigiria DROP e deve ser autorizada separadamente.
+
+As instruções administrativas usadas nesta aplicação, executadas separadamente
+na conexão administrativa e somente após aprovação, foram:
+
+```sql
+-- Antes da migration, somente ALTER nesta tabela:
+GRANT ALTER ON `emotions_development`.`accounts`
+  TO 'emotions_migrator'@'localhost';
+```
+
+```sql
+-- Após a migration, inclusive em caso de falha:
+REVOKE ALTER ON `emotions_development`.`accounts`
+  FROM 'emotions_migrator'@'localhost';
+SHOW GRANTS FOR 'emotions_migrator'@'localhost';
+```
+
+Antes de aplicar: revisar SQL, conferir esquema/contas existentes, privilégios,
+backup e ausência de escritores. O lock de migrations serializa runners, mas
+não impede escritas pela API. DDL tem commit implícito; em falha parcial, parar
+e inspecionar o estado antes de repetir. Os preflights recusam contas com hash
+vazio/ativa sem hash e colisão de tabelas antes do primeiro ALTER.
+
+O `down` recusa antes do primeiro DROP se houver registros em qualquer tabela
+nova ou contas com hash NULL. Não apaga histórico nem inventa credenciais para
+contornar as proteções. Esse caminho foi preparado para teste offline, não
+executado no MySQL.
+
+Os dez testes reais de autenticação passaram. A suíte completa teve 43 testes
+MySQL aprovados, com fixtures revertidas e doze tabelas de aplicação vazias ao
+final. As três migrations constam como aplicadas, todas as CHECKs mapeadas estão
+ENFORCED e o ORM encontrou zero diferenças de esquema. As primeiras expectativas
+de duas violações de FK foram ajustadas para aceitar os dois códigos específicos
+que o MySQL pode retornar, seguindo o padrão dos testes de domínio existentes.
+Nenhuma restrição foi removida para fazer os testes passarem.
 
 ## Comandos Yarn e execução autorizada
 

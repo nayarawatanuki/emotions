@@ -70,7 +70,12 @@ src/
 │   ├── record-columns.ts
 │   └── run-migrations.ts
 ├── modules/
-│   ├── auth/services/password.service.ts
+│   ├── auth/
+│   │   ├── services/password.service.ts
+│   │   └── entities/
+│   │       ├── auth-session.entity.ts
+│   │       ├── account-token.entity.ts
+│   │       └── auth-rate-limit.entity.ts
 │   ├── accounts/
 │   │   ├── entities/account.entity.ts
 │   │   ├── services/create-first-admin.service.ts
@@ -103,7 +108,7 @@ test/
 - `HealthModule`: oferece somente a verificação de funcionamento do processo.
 - `DatabaseModule`: cria a conexão TypeORM/MySQL quando explicitamente habilitada;
   o Nest gerencia seu encerramento. As entidades estão registradas sem sincronização;
-  a migration preparada só pode ser executada por comando separado e autorizado.
+  migrations só podem ser executadas por comando separado e autorizado.
 - `common/`: comportamentos compartilhados, sem regras de negócio dos módulos.
 
 Os schemas de persistência ficam em `src/modules/<funcionalidade>/entities/`.
@@ -154,7 +159,7 @@ sem reproduzir credenciais ou erros do driver. Há uma tentativa de conexão,
 com timeout de conexão de 5 segundos e pool de até cinco conexões.
 
 Controles definidos: `synchronize=false`, `dropSchema=false`, `migrationsRun=false`,
-sem entidades ou migrations registradas, sem logs de SQL e sem múltiplas instruções
+com entidades registradas e migrations apenas no runner explícito, sem logs de SQL e sem múltiplas instruções
 por consulta. A conexão usa `utf8mb4`, datas em UTC e números grandes como strings
 para evitar perda de precisão. Esses controles não substituem autorização,
 consultas parametrizadas e validações nas funcionalidades futuras.
@@ -208,6 +213,27 @@ Erros são padronizados sem reproduzir mensagens de exceções ou stack traces.
 O servidor registra apenas um aviso genérico quando ocorre um erro interno.
 Uma estratégia de logs com diagnóstico e remoção de dados sensíveis será
 avaliada conforme as próximas funcionalidades forem implementadas.
+
+## Persistência de autenticação — aplicada e validada
+
+O desenho aprovado acrescenta `auth_sessions`, `account_tokens` e
+`auth_rate_limits`, com digests privados, índices e restrições. O hash de senha
+passa a aceitar NULL em contas não ativas; uma CHECK exige valor não vazio em
+contas ativas. Os serviços continuam responsáveis por produzir hashes válidos.
+Links profissionais serão entregues pelo ADM, com validade de 24 h para ativação
+e 30 min para recuperação, sem envio automático nesta etapa.
+
+A terceira migration foi aplicada e validada: são doze tabelas da aplicação
+e duas técnicas. O ALTER temporário, restrito a `accounts`, já foi revogado. Não execute `migration:run`
+sem a revisão e a autorização específicas. MySQL DDL não tem rollback
+transacional; a operação requer uma janela sem escritores e inspeção em falhas.
+
+A suíte `test/authentication-schema.integration-spec.ts` exige a terceira
+migration aplicada e passou com fixtures revertidas. Os 43 testes de banco
+passaram; as doze tabelas da aplicação ficaram vazias, com CHECKs conferidas
+e sem diferenças entre o esquema e os modelos. Os caminhos de reversão
+continuam validados somente offline, sem execução de down no MySQL.
+Detalhes e limites estão no [desenho de autenticação](../docs/architecture/authentication.md).
 
 ## Primeiro administrador — comando local
 
