@@ -4,7 +4,7 @@ API NestJS com TypeScript e Express, organizada por módulos de funcionalidade.
 
 ## Ambiente e comandos
 
-Use Node.js 24 LTS e Yarn Classic 1.22.22. Dentro de `backend/`:
+Use Node.js 24.21.0 ou posterior compatível e Yarn Classic 1.22.22. Dentro de `backend/`:
 
 ```sh
 yarn install --frozen-lockfile
@@ -70,7 +70,13 @@ src/
 │   ├── record-columns.ts
 │   └── run-migrations.ts
 ├── modules/
-│   ├── accounts/entities/account.entity.ts
+│   ├── auth/services/password.service.ts
+│   ├── accounts/
+│   │   ├── entities/account.entity.ts
+│   │   ├── services/create-first-admin.service.ts
+│   │   └── commands/
+│   │       ├── admin-input.ts
+│   │       └── create-first-admin.ts
 │   ├── professionals/entities/professional.entity.ts
 │   ├── children/entities/child.entity.ts
 │   ├── files/entities/stored-file.entity.ts
@@ -203,6 +209,46 @@ O servidor registra apenas um aviso genérico quando ocorre um erro interno.
 Uma estratégia de logs com diagnóstico e remoção de dados sensíveis será
 avaliada conforme as próximas funcionalidades forem implementadas.
 
+## Primeiro administrador — comando local
+
+Após revisar esta etapa e configurar a conexão da aplicação no `.env`, execute
+**dentro de `backend/`, em um terminal local**:
+
+```sh
+yarn admin:create-first
+```
+
+O comando compila o backend e pede nome, usuário, senha e confirmação. A senha
+fica oculta e deve ter 15–128 pontos de código Unicode válidos, até 512 bytes.
+Espaços são preservados na senha; nome e usuário são aparados, e o usuário é
+convertido para minúsculas. Não informe senha por argumento, variável de
+ambiente ou redirecionamento. Ctrl+C cancela a entrada e restaura o terminal.
+
+É criada somente uma conta ativa com papel `administrator`. O comando recusa
+qualquer ADM existente, incluindo pendente ou suspenso, e não redefine senhas.
+Usa a conexão `DB_USER` existente, sem DDL nem credenciais de migration. Um
+bloqueio nomeado por banco e uma transação na mesma conexão protegem a criação
+contra execuções simultâneas. A conexão é encerrada ao terminar ou falhar.
+
+O hash Argon2id usa a API nativa do Node: 64 MiB, três passagens, paralelismo um,
+salt aleatório de 16 bytes e resultado de 32 bytes, serializado em PHC. A
+verificação aceita somente esse perfil de custo e formato canônico. Buffers com senha e chave derivada
+são apagados pelo serviço após o uso; strings JavaScript não têm
+apagamento garantido da memória.
+
+Nenhuma conta real foi criada na validação automatizada. Os testes de MySQL
+exigem banco local `emotions_development` vazio, executam o serviço dentro de
+savepoints e revertem a transação externa. Também verificam o bloqueio entre
+duas conexões e a exclusão do hash das consultas padrão. A suíte é separada:
+
+```sh
+yarn test:database
+```
+
+Esse comando prepara a credencial do primeiro ADM; login, sessões, recuperação
+e telas de acesso serão implementados em etapas próprias. Veja o
+[plano de autenticação](../docs/architecture/authentication.md).
+
 ## Controles e limites desta etapa
 
 - JSON limitado a 16 KB; corpos comprimidos não são aceitos.
@@ -213,7 +259,7 @@ avaliada conforme as próximas funcionalidades forem implementadas.
 - Encerramento de aplicação habilitado nos sinais de parada pelo Nest.
 - Não há CORS liberado, arquivos estáticos ou telemetria externa configurados.
 
-Esta base não contém autenticação, autorização, controle de tentativas,
+Esta base ainda não oferece login HTTP, sessões, autorização, controle de tentativas,
 fluxos de persistência do domínio, validação de DTOs ou processamento de uploads. Não deve ser
 apresentada como pronta para atender dados de crianças. HTTPS e configuração
 de proxy serão definidos para o ambiente de implantação; não se deve presumir

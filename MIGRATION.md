@@ -197,6 +197,28 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 
 ## Critérios de validação
 
+### Autenticação — hash e criação do primeiro ADM implementados, em revisão
+
+- Revisados os campos e estados atuais de `accounts` e o cadastro profissional.
+- Implementados Argon2id assíncrono nativo do Node 24.21.0 e comando interativo
+  `yarn admin:create-first`, sem pacote adicional.
+- Comando cria o primeiro ADM ativo em transação sob bloqueio MySQL e recusa qualquer
+  ADM existente. Entrada de senha oculta, com confirmação e cancelamento.
+- Nenhum ADM real foi criado pelo agente; fixtures de teste são revertidas.
+- Documentados primeiro acesso, recuperação, sessões revogáveis, CSRF, limites,
+  futuras alterações de banco e etapas de implementação em
+  `docs/architecture/authentication.md`.
+- Canal de entrega dos links de primeiro acesso/recuperação solicitado à
+  desenvolvedora; recomendação inicial de entrega pelo ADM, sem coleta de e-mail.
+- Medição exploratória nativa com dados sintéticos: 78, 71 e 70 ms por hash com
+  64 MiB, três passagens e paralelismo um. Não representa teste de carga.
+- Nenhuma dependência, endpoint, migration ou estrutura de banco foi alterada.
+- Tipos, lint, 118 testes unitários, 10 HTTP, 33 de MySQL e build passaram.
+  Os testes MySQL incluem criação do primeiro ADM dentro de savepoint, hash verificável e
+  disputa de bloqueio por conexões diferentes, com transação externa revertida.
+- Terminal real: senha permaneceu oculta, Ctrl+C cancelou antes da conexão e
+  entrada redirecionada foi recusada. Chrome: `/health` retornou `{"status":"ok"}`.
+
 ### Provisionamento MySQL local — aprovado para commit
 
 - Inspeção no Workbench: MySQL 8.0.46 na porta 3306, `partial_revokes=0`,

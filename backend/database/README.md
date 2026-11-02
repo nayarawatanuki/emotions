@@ -134,7 +134,7 @@ Antes de liberar o fluxo, os serviços ainda precisam garantir:
   isolada imutável nem implementa sozinho uma política de retenção.
 - Feedback carinhoso obrigatório no encerramento sem acerto. Os campos opcionais
   permitem configurá-lo sem decidir automaticamente sua origem ou biblioteca.
-- Algoritmo e parâmetros de hash, ativação/recuperação, bootstrap do primeiro
+- Algoritmo e parâmetros de hash, ativação/recuperação, criação do primeiro
   ADM e segurança da sessão. Não existem contas ou senhas padrão/seeds.
 - Política de pausas: `timing_source` distingue tempo decorrido do servidor e
   tempo ativo informado pelo cliente, sem escolher automaticamente um deles.

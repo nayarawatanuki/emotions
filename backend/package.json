@@ -23,7 +23,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "test:database": "node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs run --config ./vitest.config.database.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "yarn typecheck && yarn lint && yarn test && yarn test:e2e && yarn build"
+    "verify": "yarn typecheck && yarn lint && yarn test && yarn test:e2e && yarn build",
+    "admin:create-first": "yarn build && node --env-file-if-exists=.env dist/modules/accounts/commands/create-first-admin.js"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

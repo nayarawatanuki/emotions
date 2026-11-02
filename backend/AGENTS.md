@@ -27,6 +27,8 @@ Existe uma base de conexão TypeORM/MySQL, desativada por padrão.
 O esquema inicial foi aplicado e validado, sem dados reais.
 A unificação em nove entidades, com `activity_results` acompanhando realização
 e desfecho, foi aplicada e validada. Permissões temporárias foram revogadas.
-Autenticação, autorização e serviços transacionais do domínio não estão implementados.
+Hash Argon2id nativo e criação local do primeiro ADM estão implementados.
+Nenhum ADM real foi criado na validação; os testes usam fixtures revertidas.
+Login HTTP, sessões, autorização e serviços transacionais do domínio ainda não estão implementados.
 As migrations usam credenciais separadas das da API e exigem execução explícita.
 Não habilitar a conexão ou provisionar bancos sem autorização específica.

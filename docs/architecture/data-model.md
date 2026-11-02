@@ -418,8 +418,12 @@ Alterações concorrentes não podem contornar a autorização.
 
 ## Direção proposta para autenticação
 
+O [desenho de autenticação](authentication.md) detalha a proposta de hash nativo,
+primeiro ADM, ativação, sessões e recuperação, com decisões ainda em revisão.
+
 - Senhas e códigos nunca em texto simples; algoritmo, parâmetros e política
-  de credenciais serão escolhidos na etapa específica de autenticação.
+  de credenciais são detalhados no desenho de autenticação; Argon2id e criação
+  local do primeiro ADM estão implementados, com os demais fluxos ainda em revisão.
 - Não reutilizar automaticamente as credenciais antigas nem criar contas padrão.
 - Preferência inicial por sessões revogáveis no servidor e cookie `HttpOnly`,
   com `Secure` em HTTPS e política `SameSite` adequada ao ambiente.
