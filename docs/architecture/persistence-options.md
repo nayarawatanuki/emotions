@@ -2,7 +2,13 @@
 
 Data da consulta: 1 de novembro de 2026.
 Status: TypeORM aprovado; provisionamento local e conexão real validados.
-Esquema, migrations e migração de dados continuam pendentes de aprovação e implementação.
+Esquema completo e migration inicial aprovados, aplicados e validados com
+29 testes de integridade em MySQL real. Migração de dados e serviços do domínio
+continuam pendentes.
+
+A unificação posterior em `activity_results` foi aprovada, aplicada e validada
+em uma segunda migration, preservando a primeira. O modelo final tem nove
+tabelas de domínio; os privilégios temporários foram revogados.
 
 ## Decisão e limites da primeira integração
 

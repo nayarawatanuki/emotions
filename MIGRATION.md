@@ -144,6 +144,57 @@ do provisionamento; a base de conexão não equivale à persistência do domíni
 Não houve mudança no frontend. Commit e push desta etapa foram autorizados
 pela desenvolvedora após a revisão das alterações e validações.
 
+## Esquema completo — aplicado, validado e aprovado para commit
+
+A desenvolvedora solicitou preservar todos os campos e fluxos do banco antigo,
+acrescentando as definições confirmadas, em vez de criar uma base mínima.
+
+- Conferidos os cinco models, cinco migrations e formulários de criança/atividade.
+- Nome da tabela de resultados ajustado para `activity_results`, conforme preferência da desenvolvedora.
+- Dez schemas TypeORM tipados, distribuídos por funcionalidade: contas,
+  profissionais, crianças, arquivos, atividades, alternativas, recompensas,
+  execuções, tentativas e resultados.
+- Correspondência de todos os campos antigos documentada em `backend/database/README.md`.
+- Migration inicial congelada preparada com FKs, índices, checks e colunas
+  geradas para unicidade de alternativa correta e execução aberta.
+- Roteiros separados para status somente de leitura e execução explícita com
+  usuário de migrations próprio, bloqueio concorrente e erros sem detalhes privados.
+- Nenhuma dependência instalada ou lockfile alterado; apenas novos scripts Yarn.
+- UTC conferido em três conexões reais; nenhum fuso global do servidor alterado.
+- Migration aplicada com `emotions_migrator`, com privilégios próprios no banco novo.
+- Dez tabelas de domínio e duas técnicas criadas. Nenhum registro antigo importado.
+- Tipos, lint, 82 testes unitários, 10 testes HTTP, 29 testes reais de integridade
+  e build passaram. As fixtures sintéticas foram revertidas; tabelas de domínio vazias.
+- Segunda execução aplicou zero migrations; status confirmou a primeira aplicada.
+- Comparação do esquema com os mapeamentos não apontou mudanças pendentes.
+- Corrigidos retorno textual de GET_LOCK e leitura de DATE sem deslocamento de fuso,
+  com testes de regressão. Exclusividade do bloqueio conferida em duas conexões.
+- API compilada com as novas entidades conferida no Chrome: `/health` responde.
+
+Aplicação do SQL, provisionamento da conta de migrations e testes reais das
+constraints foram concluídos com autorização. A estrutura cobre o domínio,
+mas seus serviços transacionais e endpoints ainda não estão implementados.
+Nenhum registro ou arquivo antigo será migrado automaticamente.
+
+## Unificação da realização e desfecho — aplicada e aprovada para commit
+
+- A desenvolvedora aprovou uma tabela única chamada `activity_results`.
+- O registro acompanha liberação, andamento e finalização, com desfecho nulo
+  enquanto aberto. Cada repetição cria outro registro e preserva os anteriores.
+- Tentativas permanecem em `activity_attempts`, vinculadas por `result_id`;
+  quantidade e tempo total são derivados, sem colunas de totais duplicados.
+- Novo mapeamento com nove entidades e segunda migration versionada, preservando
+  a primeira já aplicada. O ajuste interrompe antes do DDL se houver dados.
+- As três tabelas afetadas foram inspecionadas e estavam vazias.
+- A segunda migration foi aplicada com as permissões temporárias autorizadas,
+  que foram revogadas ao terminar. A conta da API permaneceu intacta.
+- Tipos, lint, 85 testes unitários, 10 testes HTTP, 29 testes reais e build passaram.
+- Esquema com nove tabelas de domínio e duas técnicas, sem diferenças para os
+  mapeamentos. Reexecutar o runner aplicou zero migrations; as duas constam no status.
+- Fixtures revertidas; o banco antigo não foi alterado.
+- Commit e push desta etapa foram aprovados após a revisão do esquema unificado
+  e dos resultados das verificações.
+
 ## Critérios de validação
 
 ### Provisionamento MySQL local — aprovado para commit
@@ -160,7 +211,9 @@ pela desenvolvedora após a revisão das alterações e validações.
 - Tipos, lint, 55 testes unitários, 10 testes HTTP e build passaram novamente.
 - Roteiros de inspeção e provisionamento e instruções de recuperação parcial
   preparados em `backend/database/setup/`, sem senhas versionadas.
-- TLS remoto, entidades, migrations e persistência do domínio permanecem pendentes.
+- Na conclusão dessa etapa de provisionamento, entidades e migrations ainda eram
+  pendentes; foram implementadas e validadas na etapa de esquema completo acima.
+  TLS remoto e serviços de persistência do domínio continuam pendentes.
 
 ### Verificações gerais
 

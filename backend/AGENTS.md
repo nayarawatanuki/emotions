@@ -24,5 +24,9 @@ Seguir integralmente `../.codex/agents.md` e as instruções da desenvolvedora.
 
 A base oferece somente liveness em `/health`; esse endpoint não verifica o banco.
 Existe uma base de conexão TypeORM/MySQL, desativada por padrão.
-Autenticação, autorização, entidades e migrations ainda não estão implementadas.
+O esquema inicial foi aplicado e validado, sem dados reais.
+A unificação em nove entidades, com `activity_results` acompanhando realização
+e desfecho, foi aplicada e validada. Permissões temporárias foram revogadas.
+Autenticação, autorização e serviços transacionais do domínio não estão implementados.
+As migrations usam credenciais separadas das da API e exigem execução explícita.
 Não habilitar a conexão ou provisionar bancos sem autorização específica.

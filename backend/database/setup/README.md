@@ -96,7 +96,10 @@ Depois de autorizado e configurado, validar (concluído neste ambiente):
 O `/health` é liveness, não comprova sozinho disponibilidade do banco.
 TLS com certificado permanece uma validação separada: esta conexão local
 sem TLS não comprova o comportamento de uma conexão remota protegida.
-Migrations terão usuário e aprovação próprios em uma etapa posterior.
+A [migration inicial](../README.md) foi aplicada com aprovação e validada com
+29 testes reais. O usuário e os privilégios próprios estão documentados em
+`provision-migrator.sql`. Não repita os comandos de criação de conta no ambiente
+já provisionado; novos ambientes exigem sua própria revisão e autorização.
 
 ## Referências
 

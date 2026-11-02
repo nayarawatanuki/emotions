@@ -7,6 +7,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
+    "migration:status": "yarn build && node --env-file-if-exists=.env dist/database/migration-status.js",
+    "migration:run": "yarn build && node --env-file-if-exists=.env dist/database/run-migrations.js",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node --env-file-if-exists=.env ./node_modules/@nestjs/cli/bin/nest.js start",
@@ -19,6 +21,7 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "test:database": "node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs run --config ./vitest.config.database.ts",
     "typecheck": "tsc --noEmit",
     "verify": "yarn typecheck && yarn lint && yarn test && yarn test:e2e && yarn build"
   },

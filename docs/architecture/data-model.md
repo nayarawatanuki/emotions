@@ -1,6 +1,18 @@
 # Modelo de dados e permissões do Emotions
 
-Status: proposta para revisão. Nenhum esquema, migration ou banco foi alterado.
+Status: esquema inicial aprovado, aplicado e validado no MySQL de desenvolvimento.
+A unificação posterior foi aprovada e aplicada, preservando os campos e
+o fluxo do banco antigo conforme orientação da desenvolvedora.
+O desenho unificado tem nove tabelas de domínio e duas técnicas. A aplicação
+foi validada e as permissões temporárias foram revogadas. As fixtures dos testes
+foram revertidas, mantendo as tabelas de domínio vazias.
+Nenhum dado antigo foi importado e o banco legado está preservado.
+
+A [revisão física do esquema](../../backend/database/README.md) relaciona todos
+os campos antigos às nove entidades do desenho unificado e diferencia garantias do banco de regras
+transacionais ainda não implementadas. O desenho físico propõe `accounts`
+compartilhado entre ADM, profissionais e crianças, mantendo login infantil,
+sem duplicar a infraestrutura de credenciais.
 
 ## Regras confirmadas
 
@@ -62,14 +74,15 @@ em vez de serem copiados como se garantissem as regras confirmadas.
 
 ```mermaid
 erDiagram
-    ADMINISTRATORS ||--o{ PROFESSIONALS : cadastra
+    ACCOUNTS ||--o| PROFESSIONALS : perfil_profissional
+    ACCOUNTS ||--o| CHILDREN : perfil_infantil
+    ACCOUNTS ||--o{ PROFESSIONALS : cadastra_como_ADM
     PROFESSIONALS ||--o{ CHILDREN : acompanha
     CHILDREN ||--o{ ACTIVITIES : recebe
     ACTIVITIES ||--o{ ACTIVITY_OPTIONS : oferece
     ACTIVITIES ||--|| REWARDS : possui
-    ACTIVITIES ||--o{ ACTIVITY_EXECUTIONS : possui_historico
-    ACTIVITY_EXECUTIONS ||--o{ ACTIVITY_ATTEMPTS : recebe_ate_tres
-    ACTIVITY_EXECUTIONS ||--o| RESULTS : registra
+    ACTIVITIES ||--o{ ACTIVITY_RESULTS : possui_historico
+    ACTIVITY_RESULTS ||--o{ ACTIVITY_ATTEMPTS : recebe_ate_tres
     ACTIVITY_OPTIONS ||--o{ ACTIVITY_ATTEMPTS : selecionada_em
     PROFESSIONALS ||--o{ FILES : gerencia
 ```
@@ -81,12 +94,12 @@ tentativas é de zero a três por execução; o diagrama não expressa sozinho e
 limite. A atividade é o conteúdo cadastrado; uma execução é uma oportunidade
 de realizá-la, liberada pelo profissional.
 
-### Administração — `administrators`
+### Administração — papel `administrator` em `accounts`
 
-Entidade lógica proposta para representar o papel ADM confirmado: identidade,
-credencial protegida, estado de acesso e registro das operações administrativas.
-O desenho físico das identidades será fechado na etapa de autenticação,
-evitando duplicar infraestrutura de credenciais sem necessidade.
+O papel ADM confirmado é representado em `accounts`, compartilhando a
+infraestrutura de identidade, hash e estado de acesso com profissionais e crianças.
+O cadastro profissional registra a conta ADM responsável por uma FK composta
+com o papel, sem uma segunda tabela de credenciais administrativas.
 
 Somente uma sessão autenticada com a permissão administrativa poderá criar
 contas profissionais. A criação da primeira conta ADM exige um procedimento
@@ -98,10 +111,11 @@ resultados infantis apenas porque cadastra profissionais.
 
 ### Profissionais — `professionals`
 
-- Identificador próprio, nome, usuário de acesso e hash da senha.
-- Usuário de acesso normalizado e único, com política de normalização definida
-  antes da migration para não depender implicitamente da collation do MySQL.
-- Estado de acesso e datas de criação/alteração.
+- Identificador próprio, conta vinculada e conta ADM responsável pelo cadastro.
+- Nome, usuário e hash ficam em `accounts`, sem duplicação no perfil.
+- Usuário em minúsculas, sem espaços nas pontas, único com collation explícita
+  `utf8mb4_0900_as_ci`. A implementação de autenticação deve respeitar essa política.
+- Estado de acesso na conta, arquivamento no perfil e datas de criação/alteração.
 - Nenhum retorno da API deve incluir o hash da senha.
 
 O cadastro será feito exclusivamente pelo ADM. A operação deve registrar o
@@ -115,16 +129,17 @@ automaticamente apenas porque poderiam ser úteis no futuro.
 ### Crianças — `children`
 
 - `professional_id`: chave estrangeira obrigatória, com índice para consultas.
-- Nome, usuário de acesso e hash do segredo de acesso, caso o login próprio
-  da criança seja mantido.
+- Nome, usuário e hash em conta com papel infantil, preservando o fluxo antigo
+  conforme orientação da desenvolvedora; segurança da autenticação será implementada
+  na etapa própria.
 - Nascimento como data civil (`DATE`), sem conversão de fuso horário.
 - Nome do responsável e observações com limites explícitos, quando necessários.
 - Foto como referência a um arquivo protegido, nunca como URL pública fixa.
 - Datas de criação/alteração e estado de arquivamento.
 
 Campos opcionais devem aceitar ausência real, sem exigir strings vazias ou
-conteúdo inventado para satisfazer o banco. A obrigatoriedade de nascimento,
-responsável e observações será confirmada na revisão dos formulários.
+conteúdo inventado para satisfazer o banco. Nascimento e responsável foram
+mantidos obrigatórios; observações, grau informado e foto aceitam ausência real.
 
 O campo antigo `rate` não será convertido automaticamente em classificação
 clínica. Seus valores e sua necessidade precisam ser revisados. Também não se
@@ -147,7 +162,7 @@ referências forem válidas. A disponibilidade para a criança depende também
 de uma execução liberada. A conclusão pertence à execução, não apaga a
 atividade e não é um estado que o cliente possa atribuir livremente.
 
-### Execuções e reset — `activity_executions`
+### Execuções e reset — `activity_results`
 
 - `activity_id` obrigatório; número sequencial único por atividade.
 - Unicidade de `(id, activity_id)` para referências compostas das tentativas.
@@ -257,10 +272,8 @@ O limite de tentativas não deve ser apresentado como perda de vidas ou puniçã
 
 - Uma linha por resposta avaliada, vinculada à execução e à alternativa escolhida.
 - Número da tentativa limitado a 1, 2 ou 3.
-- Unicidade de `(execution_id, attempt_number)`.
-- Unicidade de `(execution_id, id)` para vincular o resultado à tentativa final
-  da mesma execução.
-- Referência composta de execução/atividade para impedir que uma tentativa
+- Unicidade de `(result_id, attempt_number)`.
+- Referência composta de realização/atividade para impedir que uma tentativa
   associe a execução de uma atividade ao identificador de outra.
 - Referência composta `(activity_id, selected_option_id)` para impedir seleção
   de alternativa pertencente a outra atividade.
@@ -307,36 +320,25 @@ O código antigo não implementa esse desfecho específico para três erros.
   implementar o cronômetro. Distinguir tempo decorrido de tempo ativo e manter
   a origem da medição explícita no registro do profissional.
 
-### Resultados — `results`
+### Registro unificado da realização e desfecho — `activity_results`
 
-- `execution_id` obrigatório e único: no máximo uma finalização normal por execução.
-- Referência à tentativa final da mesma execução, sem duplicar a alternativa
-  já registrada nela.
-- Quantidade de tentativas obtida dos registros daquela execução, entre 1 e 3.
-- Duração total em segundos como inteiro não negativo, obtida das tentativas,
-  com origem da medição explícita e sem limite de desempenho.
-- Horário de finalização registrado pelo servidor.
-- Desfecho proposto: `correct` ou `attempts_exhausted`, distinguindo acerto de
-  encerramento por limite sem misturar ambos em um único estado “realizada”.
-- A criança é obtida pela execução e sua atividade, evitando repetir `child_id` e permitir
-  que atividade e criança entrem em contradição.
+A desenvolvedora aprovou unificar o acompanhamento e o resultado final em uma
+única tabela chamada `activity_results`. Cada linha existe desde a liberação, guarda
+estado, início, conclusão e `outcome` nulo enquanto estiver aberta. Ao concluir,
+`outcome` é obrigatório: `correct` ou `attempts_exhausted`.
 
-Proposta: finalizar uma execução e criar seu resultado na mesma transação.
-Uma finalização repetida deve devolver o resultado existente se representar a
-mesma operação; dados conflitantes devem ser rejeitados, sem sobrescrever o
-registro original. A restrição única também protege contra requisições concorrentes.
+Cada repetição cria outra linha da mesma atividade e referencia a anterior,
+sem apagar tentativas ou desfechos. `activity_attempts.result_id` identifica
+exatamente a realização respondida. Quantidade de tentativas e duração total
+são calculadas das linhas desse mesmo registro, sem armazenar totais duplicados.
+A última tentativa preservada identifica a resposta final.
 
-O reset pelo profissional foi confirmado: cada repetição terá sua própria
-execução e resultado. Não sobrescrever o resultado anterior nem zerar suas
-tentativas. Só uma execução já concluída pode originar uma repetição.
-O reset não apaga resultados nem cria um desfecho artificial para uma
-execução ainda em andamento.
+O serviço deve validar escopo, estado, sequência, limite, acerto e finalização
+na mesma transação. O esgotamento requer três erros; o banco não conta linhas
+filhas por CHECK. Reenvios e finalizações conflitantes não podem sobrescrever
+o histórico. O profissional só libera repetição após a conclusão, nunca durante
+uma realização aberta. Contadores e tempos do cliente não são confiáveis por si.
 
-Contadores e duração enviados pelo navegador não serão tratados como medidas
-confiáveis do servidor. O limite confirmado é de três tentativas por execução,
-contabilizadas pelas respostas persistidas. O tempo local, se preservado, será identificado
-como informado pelo cliente. Não se deve apresentar esses registros isolados
-como comprovação de evolução clínica.
 
 ### Arquivos — `files`
 
@@ -451,10 +453,13 @@ Alterações concorrentes não podem contornar a autorização.
 ## Decisões pendentes
 
 - Como criar o primeiro ADM, entregar o primeiro acesso e ativar/recuperar contas?
-- Manter login próprio da criança ou iniciar seu acesso por mediação do profissional?
+- Detalhar o acesso infantil preservado do fluxo antigo, com credencial protegida
+  e sem tratar códigos curtos como segredo forte.
 - Confirmar se o profissional configura também a imagem e a mensagem de acolhimento.
 - Definir a contabilização de pausas e períodos fora da tela, sem impor prazo de resposta.
-- Quais campos infantis são necessários e qual será o destino de `rate` e `treatment`?
+- Definir retenção e exposição dos campos infantis preservados. O esquema mantém
+  `rate` como informação declarada e `treatment` como booleano de tratamento ativo,
+  sem converter nenhum deles automaticamente em diagnóstico ou permissão de acesso.
 - Como tratar arquivamento, retenção, transferência e exclusão definitiva?
 
 Essas pendências não alteram as regras confirmadas de vínculo, criação das

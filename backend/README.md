@@ -51,18 +51,44 @@ src/
 │   ├── environment.ts
 │   └── environment.spec.ts
 ├── database/
+│   ├── database-entities.ts
+│   ├── database-entities.spec.ts
 │   ├── database-options.ts
 │   ├── database-options.spec.ts
 │   ├── database.module.ts
-│   └── database.module.spec.ts
+│   ├── database.module.spec.ts
+│   ├── migration-options.ts
+│   ├── migration-options.spec.ts
+│   ├── migration-lock.ts
+│   ├── migration-lock.spec.ts
+│   ├── migration-status.ts
+│   ├── migrations/1793520000000-initial-domain-schema.ts
+│   ├── migrations/1793520001000-unify-activity-results.ts
+│   ├── migrations/unify-activity-results.spec.ts
+│   ├── mysql-driver.ts
+│   ├── mysql-driver.spec.ts
+│   ├── record-columns.ts
+│   └── run-migrations.ts
 ├── modules/
+│   ├── accounts/entities/account.entity.ts
+│   ├── professionals/entities/professional.entity.ts
+│   ├── children/entities/child.entity.ts
+│   ├── files/entities/stored-file.entity.ts
+│   ├── activities/entities/
+│   │   ├── activity.entity.ts
+│   │   ├── activity-option.entity.ts
+│   │   └── reward.entity.ts
+│   ├── results/entities/
+│   │   ├── activity-result.entity.ts
+│   │   └── activity-attempt.entity.ts
 │   └── health/
 │       ├── health.controller.ts
 │       └── health.module.ts
 ├── app.module.ts
 └── main.ts
 test/
-└── app.e2e-spec.ts
+├── app.e2e-spec.ts
+└── domain-schema.integration-spec.ts
 ```
 
 - `main.ts`: valida o ambiente, cria a aplicação e inicia o servidor.
@@ -70,15 +96,22 @@ test/
 - `AppModule`: compõe os módulos da aplicação.
 - `HealthModule`: oferece somente a verificação de funcionamento do processo.
 - `DatabaseModule`: cria a conexão TypeORM/MySQL quando explicitamente habilitada;
-  o Nest gerencia seu encerramento. Não contém entidades ou migrations nesta etapa.
+  o Nest gerencia seu encerramento. As entidades estão registradas sem sincronização;
+  a migration preparada só pode ser executada por comando separado e autorizado.
 - `common/`: comportamentos compartilhados, sem regras de negócio dos módulos.
 
-Serviços, modelos e DTOs entrarão junto com as funcionalidades que os utilizam.
+Os schemas de persistência ficam em `src/modules/<funcionalidade>/entities/`.
+A [revisão completa do esquema](database/README.md) descreve todas as tabelas,
+o destino dos campos antigos e as regras que exigem serviços transacionais.
+Serviços, controllers e DTOs entrarão junto com as funcionalidades que os utilizam.
 
 ## Base de conexão MySQL
 
 O [roteiro de provisionamento local](database/setup/README.md) registra o progresso:
-banco vazio e usuário próprio provisionados com autorização; conexão real validada.
+banco e usuários próprios provisionados com autorização; esquema inicial aplicado
+e validado com testes reais. As tabelas de domínio permanecem sem registros.
+O ajuste aprovado unifica realização e desfecho em `activity_results` e foi
+aplicado na segunda migration, mantendo nove tabelas de domínio e duas técnicas.
 O banco legado permanece preservado.
 
 Pacotes aprovados: `@nestjs/typeorm@12.0.2`, `typeorm@1.1.2` e `mysql2@3.24.6`.
@@ -123,9 +156,21 @@ consultas parametrizadas e validações nas funcionalidades futuras.
 Após aprovação do provisionamento, o banco local `emotions_development` e
 o usuário `emotions_app@localhost` foram criados; a conexão TCP via TypeORM,
 as permissões e a ausência de tabelas foram conferidas. O banco antigo não foi
-alterado. Não há entidades ou migrations aplicadas. TLS remoto ainda precisa
+alterado. As duas migrations e o mapeamento final de nove entidades foram validados.
+Os testes usam transações e revertem todas as fixtures sintéticas. TLS remoto ainda precisa
 ser validado em ambiente próprio. `/health` permanece uma verificação de liveness;
 não monitora a conexão após a inicialização.
+
+`yarn migration:status` consulta o estado sem criar tabelas. `yarn migration:run`
+fica reservado à aplicação explicitamente autorizada com credenciais próprias;
+nunca é executado pelos comandos de inicialização da API. Consulte a revisão
+do esquema antes de provisionar a conta de migrations ou aplicar SQL.
+
+`yarn test:database` executa os testes de integridade em MySQL real com a conta
+da API e exige `emotions_development` com todas as tabelas de domínio vazias.
+As fixtures são revertidas ao final de cada teste. Esse comando é separado de
+`yarn run verify`, que continua independente de banco. Nunca apontar os testes
+para dados reais ou alterar a verificação de banco vazio para fazê-los passar.
 
 Referências: [integrações do Nest](https://docs.nestjs.com/techniques/database)
 e [driver MySQL do TypeORM](https://typeorm.io/docs/drivers/mysql/).
@@ -169,7 +214,7 @@ avaliada conforme as próximas funcionalidades forem implementadas.
 - Não há CORS liberado, arquivos estáticos ou telemetria externa configurados.
 
 Esta base não contém autenticação, autorização, controle de tentativas,
-entidades persistidas, validação de DTOs ou processamento de uploads. Não deve ser
+fluxos de persistência do domínio, validação de DTOs ou processamento de uploads. Não deve ser
 apresentada como pronta para atender dados de crianças. HTTPS e configuração
 de proxy serão definidos para o ambiente de implantação; não se deve presumir
 que estes cabeçalhos substituam esses controles.

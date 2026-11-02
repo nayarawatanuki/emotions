@@ -13,7 +13,11 @@ export class DatabaseModule {
       module: DatabaseModule,
       imports: [
         TypeOrmModule.forRootAsync({
-          useFactory: () => createDatabaseOptions(environment),
+          useFactory: () => ({
+            ...createDatabaseOptions(environment),
+            retryAttempts: 1,
+            verboseRetryLog: false,
+          }),
           dataSourceFactory: initializeDataSource,
         }),
       ],
