@@ -43,13 +43,32 @@ export class PasswordService {
     } catch {
       return false;
     }
+    const parsed = this.parseHash(encoded);
+    if (!parsed) return false;
+    const { salt, expected } = parsed;
+    const actual = await this.derive(password, salt);
+    try {
+      return timingSafeEqual(actual, expected);
+    } finally {
+      actual.fill(0);
+      expected.fill(0);
+    }
+  }
+
+  isSupportedHash(encoded: string): boolean {
+    return this.parseHash(encoded) !== null;
+  }
+
+  private parseHash(
+    encoded: string,
+  ): { salt: Buffer; expected: Buffer } | null {
     // Only this bounded cost profile is accepted; stored input cannot raise KDF cost.
     if (!encoded.startsWith(prefix) || encoded.length !== prefix.length + 66)
-      return false;
+      return null;
     const fields = encoded.slice(prefix.length).split('$');
     const saltText = fields[0];
     const keyText = fields[1];
-    if (!saltText || !keyText || fields.length !== 2) return false;
+    if (!saltText || !keyText || fields.length !== 2) return null;
     const salt = Buffer.from(saltText, 'base64');
     const expected = Buffer.from(keyText, 'base64');
     if (
@@ -58,14 +77,8 @@ export class PasswordService {
       salt.toString('base64').replace(/=+$/, '') !== saltText ||
       expected.toString('base64').replace(/=+$/, '') !== keyText
     )
-      return false;
-    const actual = await this.derive(password, salt);
-    try {
-      return timingSafeEqual(actual, expected);
-    } finally {
-      actual.fill(0);
-      expected.fill(0);
-    }
+      return null;
+    return { salt, expected };
   }
 
   private async derive(password: string, salt: Buffer): Promise<Buffer> {

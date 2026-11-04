@@ -1,22 +1,23 @@
 # Autenticação e acesso — implementação incremental
 
-Consulta técnica: 2 de novembro de 2026. O primeiro incremento, aprovado pela
-desenvolvedora, implementa hash e criação local do primeiro ADM. Nenhuma conta
-real foi criada, nenhuma dependência foi adicionada e nenhuma estrutura de
-banco foi alterada.
-O desenho de persistência e a entrega manual dos links pelo ADM foram aprovados.
-A terceira migration foi aplicada e validada no MySQL local. Login HTTP, convites
-e recuperação ainda não estão implementados.
+Atualizado em 4 de novembro de 2026. Hash e criação local do primeiro ADM foram
+concluídos no commit `0513188`; a persistência de autenticação, no `dd7c6cf`.
+O incremento atual implementa login adulto, consulta da sessão e logout, com
+os prazos aprovados. Convites e recuperação continuam para etapas posteriores.
+Nenhuma conta real foi criada nos testes; nenhuma nova dependência ou migration
+foi necessária para os endpoints.
 
 ## Estado atual e direção
 
 O backend possui `accounts` com papéis `administrator`, `professional` e `child`,
 estados `pending`, `active` e `suspended`, username único normalizado e campo
 de hash excluído das seleções padrão. Há proteção e verificação local de senha
-e comando para o primeiro ADM. Ainda não há login HTTP, sessão, proteção de
-rotas ou recuperação. `/health` continua público.
+e comando para o primeiro ADM. Há login adulto, sessões revogáveis, proteção
+de rotas e limites compartilhados, habilitados explicitamente por configuração.
+Recuperação e primeiro acesso profissional ainda estão pendentes. `/health`
+continua público.
 
-Proposta: credenciais locais protegidas por Argon2id e sessões opacas revogáveis
+Implementação: credenciais locais protegidas por Argon2id e sessões opacas revogáveis
 no MySQL. O servidor consulta o papel e o estado atuais; não recebe autoridade
 de um campo livre no corpo da requisição. ADM cadastra profissionais, mas não
 ganha acesso automático aos dados clínicos ou infantis.
@@ -38,15 +39,15 @@ hash; dados malformados não podem solicitar custos arbitrários. Comparação
 com `timingSafeEqual` após validar comprimentos. Rehash futuro será explícito.
 
 Uma medição exploratória com três senhas sintéticas nesse computador retornou
-78, 71 e 70 ms. Não é teste de carga nem prova para produção. Login precisará
-de limite de requisições e de concorrência antes do cálculo caro; não basta
+78, 71 e 70 ms. Não é teste de carga nem prova para produção. O login usa
+limite compartilhado de requisições e limite local de concorrência antes do cálculo caro; não basta
 usar uma API assíncrona para controlar consumo de CPU e memória.
 
 Política implementada: 15–128 pontos de código Unicode válidos, com suporte a
 frases e Unicode; limite adicional de 512 bytes UTF-8, sem truncamento, trim ou transformação da
 senha. Permitir colar e usar gerenciadores; não exigir composição artificial
 ou troca periódica sem motivo. A política de senhas comuns/comprometidas será
-definida antes de expor o login, sem enviar a senha a serviços externos.
+definida antes de uma implantação pública, sem enviar a senha a serviços externos.
 
 Criar o primeiro ADM por comando Yarn local interativo:
 
@@ -111,38 +112,94 @@ removerá o fragmento após carregá-lo e enviará o token no corpo da requisiç
 As telas não terão recursos de terceiros e usarão política de referências
 restrita. Link expirado terá ação para solicitar outro ao ADM.
 
-## 3. Sessões e HTTP
+## 3. Sessões e HTTP — implementado, aguardando revisão
 
-Criar identificador aleatório de 32 bytes e persistir somente seu digest no
-servidor. Proposta adulta: inatividade de 30 minutos e duração absoluta de oito
-horas, sem opção de sessão permanente nesta primeira versão. Renovar o
-identificador ao autenticar; logout e recuperação revogam sessões no servidor.
-Conta suspensa e profissional arquivado perdem acesso, mesmo com cookie antigo.
+Os prazos adultos foram aprovados: 30 minutos de inatividade e oito horas de
+validade absoluta, sem sessão permanente. O servidor usa o relógio UTC do MySQL,
+renova o prazo de inatividade nas requisições autenticadas e o limita ao prazo absoluto.
+O cookie dura no máximo oito horas; não substitui a validação dos prazos no banco.
 
-Cookie de produção: `__Host-emotions_session`, `HttpOnly`, `Secure`, `SameSite=Lax`,
-`Path=/`, sem `Domain`. Desenvolvimento HTTP local terá nome distinto e exceção
-restrita ao loopback; configuração insegura não pode ser usada em produção.
-HTTPS e proxy confiável precisam ser definidos para implantação.
+Cada login válido gera 32 bytes aleatórios em base64url canônico e grava somente
+o digest SHA-256. Se a requisição traz uma sessão anterior válida, ela é revogada
+na mesma transação que cria a nova. Outras sessões em dispositivos diferentes
+continuam independentes. Logout revoga a sessão atual e limpa o cookie.
 
-Operações de escrita autenticadas exigirão proteção CSRF vinculada à sessão,
-origem permitida e corpo JSON. Não usar GET para modificar dados, nem liberar
-CORS genérico. Em desenvolvimento, a integração poderá usar proxy `/api` no
-Vite para manter a navegação na mesma origem, sem tokens em localStorage.
+Contas ativas dos papéis ADM e profissional podem entrar; profissionais precisam
+de perfil não arquivado. Crianças são recusadas nesta rota. Falhas de credencial,
+conta inexistente, pendência e suspensão têm a mesma resposta 401. Hashes ausentes
+ou malformados usam uma verificação fictícia de custo equivalente. Há no máximo
+duas verificações de senha simultâneas por processo, sem fila; excesso recebe 429.
+A conta, o hash e o perfil são conferidos novamente sob lock depois da verificação
+cara. Isso impede criar uma sessão usando um estado que mudou durante o cálculo.
 
-O frontend receberá apenas identidade mínima e permissões necessárias. Senhas,
-hashes, cookies, tokens e detalhes do banco não entram nos DTOs ou logs. Mensagens
-de falha de login não revelarão se o username existe, está suspenso ou pendente;
-contas inexistentes também precisam de trabalho de hash comparável.
+A cada acesso, o guard lê papel e estado atuais, confere perfil e sessão e revoga
+a sessão observada se a conta perdeu elegibilidade ou o prazo terminou. Futuras
+operações de suspensão, arquivamento, troca de senha e mudança de papel deverão
+revogar **todas** as sessões da conta na mesma transação. Essa operação de domínio
+não foi implementada nesta etapa. Rotas precisam declarar `@AllowedRoles(...)`;
+sem declaração são negadas quando o módulo está ativo. `@PublicRoute()` é reservado
+a rotas deliberadamente públicas. ADM não herda permissão de profissional.
+Autorização sobre crianças/atividades específicas continua nos futuros serviços.
 
-Limites de login devem atuar por origem confiável e identificador, com janela
-finita e armazenamento compartilhado. Proposta inicial para avaliação: cinco
-falhas por par origem/username em 15 minutos e limite global por origem, sem
-bloqueio permanente da conta. Não confiar em X-Forwarded-For arbitrário.
-Definir também teto de hashes simultâneos, fila limitada e resposta 429.
+### Contrato HTTP
 
-O timeout de sessão não registra erro, não consome tentativa e não reinicia uma
-atividade. A realização e suas tentativas ficam preservadas para retomada.
-Os prazos infantis de acesso serão tratados em sua etapa, respeitando esse requisito.
+| Método e rota | Entrada | Resultado |
+| --- | --- | --- |
+| `POST /auth/login` | JSON com somente `username` e `password` | Cookie e identidade mínima, CSRF e prazos; HTTP 200 |
+| `GET /auth/session` | Cookie válido | Identidade atual, CSRF vinculado à sessão e prazos atualizados |
+| `POST /auth/logout` | Cookie, CSRF e JSON `{}` | Revoga a sessão, limpa o cookie; HTTP 204 |
+
+A identidade pública contém somente `id`, `name` e `role`. O token da sessão
+não entra no JSON. O token CSRF é uma credencial distinta, derivada por HMAC com
+contexto próprio e vinculada ao identificador aleatório da sessão. Deve ficar
+apenas em memória no cliente; a consulta de sessão permite recuperá-lo após
+recarregar a página. A comparação usa `timingSafeEqual` e formato canônico.
+
+Escritas exigem `Origin` exatamente igual a `AUTH_ORIGIN`, `Content-Type:
+application/json` e `X-Emotions-Request: 1`. Logout e futuras escritas autenticadas
+exigem também `X-CSRF-Token`. Login tem proteção contra CSRF por origem, JSON e
+cabeçalho customizado, antes de existir uma sessão. Pedidos explicitamente de
+outra origem por `Origin` ou Fetch Metadata são recusados. Não há CORS liberado.
+A leitura aceita o cookie somente no formato canônico de 32 bytes, recusa
+ocorrências duplicadas e não faz percent-decoding nem parsing genérico de cookies.
+
+Cookie HTTPS: `__Host-emotions_session`, `HttpOnly`, `Secure`, `SameSite=Lax`,
+`Path=/`, sem `Domain`. Desenvolvimento HTTP usa `emotions_session_local`,
+somente com origem e bind de loopback e fora de produção. Requisições inseguras
+são recusadas quando Secure é exigido. `trust proxy=false`; não confiar em
+`X-Forwarded-For` ou `X-Forwarded-Proto`. A configuração de HTTPS/proxy real ainda
+precisa de etapa própria antes de implantação; ela não foi validada por testes
+locais HTTP. O proxy `/api` do Vite e as telas serão integrados separadamente.
+
+### Limites e armazenamento compartilhado
+
+A janela inicial é de 15 minutos: até **5 solicitações por origem/username** e
+**30 por origem**, incluindo solicitações bem-sucedidas. Isso reserva capacidade
+antes do hash, sem usar o resultado da senha para decidir se a solicitação custa
+uma tentativa. Não há bloqueio permanente da conta; o prazo não é prorrogado por
+novas solicitações rejeitadas. Respostas 429 incluem `Retry-After`. O endereço é
+o peer TCP; limites por IP terão que ser revistos na implantação atrás de proxy.
+
+Os contadores usam HMAC-SHA-256 com contextos distintos e transações MySQL:
+upsert, lock e consumo em ordem estável. A recusa acontece depois do commit,
+preservando o bloqueio. Quando a origem já está bloqueada, não são criados
+contadores para novos usernames. O pool tem cinco conexões e fila de até 25;
+esgotar essa fila falha de forma fechada, com erro interno genérico.
+
+`AUTH_SECRET` tem 32 bytes aleatórios em hexadecimal, guardados somente no `.env`
+privado/ambiente seguro e compartilhados entre instâncias. Ele protege CSRF e
+identificadores dos contadores por contextos HMAC separados. Rotacioná-lo não
+revoga automaticamente os digests de sessão existentes: em comprometimento,
+revogar as sessões também será parte do procedimento operacional.
+
+Contadores expirados são reiniciados ao reutilizar a chave. A limpeza de chaves
+antigas e sessões expiradas ainda não é automática. Antes de implantação pública,
+definir e validar tarefa de retenção/limpeza, trilha de eventos mínimos, avaliação
+de senhas comprometidas, recuperação do ADM e MFA. Esta etapa valida o acesso
+adulto local; não declara operação clínica ou implantação pública pronta.
+
+Nenhuma expiração de sessão altera atividades ou consome tentativas infantis.
+Os prazos de acesso infantil continuam para sua etapa específica.
 
 ## 4. Persistência aplicada e validada
 
@@ -166,7 +223,8 @@ Os prazos infantis de acesso serão tratados em sua etapa, respeitando esse requ
 - `auth_rate_limits`: escopo, digest da chave, janela, contador unsigned e bloqueio
   temporário. Uma chave tem um contador por escopo; escopos iniciais são
   `login_origin`, `login_origin_account` e `token_redemption`. Não há IP nem username
-  em texto simples. Atualização atômica, limites e resposta 429 ainda serão implementados.
+  em texto simples. Atualização atômica, limites de login e resposta 429 estão implementados; o
+  escopo de consumo de links continua reservado para sua etapa.
 - `accounts.password_hash`: agora anulável no modelo. O CHECK permite
   ausência somente enquanto a conta não está ativa e rejeita hash vazio. Uma conta
   suspensa pode continuar sem senha, inclusive se suspensa antes da ativação.
@@ -178,11 +236,10 @@ Digests de 64 caracteres usam ASCII com comparação binária e `select: false`.
 O modelo não guarda o segredo original nem fornece DTOs públicos. O tamanho no
 banco não substitui a validação hexadecimal pelo serviço.
 
-Sessões e links usarão SHA-256 de segredos aleatórios de 32 bytes. Para limites
-baseados em IP/username, a direção é HMAC-SHA-256 com chave própria compartilhada
-entre instâncias; um hash simples de identificadores previsíveis não os protege
-adequadamente. Essa configuração ainda não foi criada, e a retenção/limpeza dos
-registros será definida antes de expor os endpoints. Os índices de expiração
+Sessões usam SHA-256 de segredos aleatórios de 32 bytes; links seguirão essa
+mesma direção. Limites de login já usam HMAC-SHA-256 com chave compartilhada
+entre instâncias e configuração própria. A retenção/limpeza dos registros será
+validada antes de implantação pública. Os índices de expiração
 preparam as consultas de limpeza, sem executar exclusões automáticas nesta etapa.
 
 ### Migration e limites da validação
@@ -213,15 +270,33 @@ e o ORM não encontrou diferenças de esquema. As três migrations constam como
 aplicadas; uma nova execução aplicou zero mudanças, já sem o ALTER temporário.
 A reversão não foi executada no MySQL; seus preflights foram testados offline.
 
+### Validação do incremento HTTP
+
+Tipos, lint, build e 181 testes unitários passaram. Os 10 testes HTTP de base e
+67 testes com MySQL passaram; a auditoria reportou zero vulnerabilidades conhecidas
+em 377 dependências, sem suprimir os avisos preexistentes da resolução minimatch
+e da ferramenta Yarn. São 258 testes distintos no conjunto executado.
+
+A suíte adulta usa contas/sessões em transação externa revertida e exercícios
+reais de hash, login, papéis, troca de identificador, expiração, suspensão,
+arquivamento, CSRF, campos extras e cabeçalhos de proxy falsos. A suíte concorrente
+de contadores usa commits independentes e remove somente suas chaves HMAC
+sintéticas. Exige banco vazio; não é destinada a bancos com dados reais.
+
+A conferência final confirmou as doze tabelas da aplicação vazias, três migrations
+aplicadas e nenhuma diferença de esquema. Chrome abriu a rota de sessão e exibiu
+a resposta de autenticação necessária; a instância local temporária foi encerrada.
+A configuração privada mantém o módulo desativado por padrão, e nenhum ADM real
+foi criado. Frontend, HTTPS/proxy de implantação e limpeza operacional ainda não
+foram validados neste incremento.
+
 ## 5. Sequência de implementação e validação
 
 1. Hash e criação do primeiro ADM concluídos no commit `0513188`.
 2. Persistência e entrega manual aprovadas; migration aplicada e restrições
-   reais validadas. Commit da etapa aguarda revisão. Avaliar
-   parsing de cookies, validação e limites e apresentar qualquer dependência
-   com versão exata antes de instalar.
-3. Implementar login, consulta da sessão, logout e guards; testar revogação,
-   expiração, sessão falsa, fixação, CSRF, enumeração e limites concorrentes.
+   reais validadas, concluídas no commit `dd7c6cf`.
+3. Login adulto, consulta da sessão, logout, guard e limites implementados;
+   aguardam revisão e commit após validação local.
 4. Implementar cadastro profissional exclusivo do ADM e convites, com testes
    reais de transação, token expirado/usado, duplo consumo e rollback.
 5. Integrar telas acessíveis no frontend e validar no Chrome, sem expor conteúdo

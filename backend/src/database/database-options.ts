@@ -19,6 +19,7 @@ export function createDatabaseOptions(
     timezone: 'Z',
     dateStrings: ['DATE'],
     poolSize: 5,
+    extra: { queueLimit: 25 },
     connectTimeout: 5000,
     multipleStatements: false,
     supportBigNumbers: true,

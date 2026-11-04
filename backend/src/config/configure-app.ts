@@ -5,6 +5,7 @@ import { securityHeaders } from '../common/middlewares/security-headers.middlewa
 export function configureApp(app: NestExpressApplication): void {
   app.disable('x-powered-by');
   app.disable('etag');
+  app.set('trust proxy', false);
   app.use(securityHeaders);
   app.useBodyParser('json', { limit: '16kb', strict: true, inflate: false });
   app.useGlobalFilters(new HttpExceptionFilter());

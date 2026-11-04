@@ -193,6 +193,22 @@ de duas violações de FK foram ajustadas para aceitar os dois códigos específ
 que o MySQL pode retornar, seguindo o padrão dos testes de domínio existentes.
 Nenhuma restrição foi removida para fazer os testes passarem.
 
+## Serviços de autenticação adulta
+
+Login, consulta da sessão e logout usam as três tabelas já existentes, sem nova
+migration. Contadores são consumidos em transação com lock antes do hash; a
+recusa acontece depois do commit. Login revalida conta/perfil e cria a sessão
+em transação. Guard usa o relógio UTC do MySQL e a ordem de locks conta, perfil,
+sessão; expiração/invalidação é persistida antes do 401. Senha não é calculada
+com uma transação ou lock de conta aberto.
+
+Os testes de acesso usam savepoints dentro de uma transação externa revertida.
+Os testes de concorrência dos limites precisam de commits reais entre conexões;
+usam somente contadores com endereço reservado para documentação e chaves HMAC
+sintéticas, removidos por suas chaves exatas no finally de cada teste. Exigem
+banco vazio antes e depois. Não criam ADM ou profissional permanente, nem leem
+registros antigos. [Configuração e contrato HTTP](../README.md#login-adulto-na-api).
+
 ## Comandos Yarn e execução autorizada
 
 Dentro de `backend/`:

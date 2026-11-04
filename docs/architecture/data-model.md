@@ -423,7 +423,8 @@ com o hash anulável somente em contas não ativas. A entrega manual de links pe
 ADM foi aprovada: ativação em 24 horas e recuperação em 30 minutos. O esquema
 aplicado tem doze tabelas da aplicação e duas técnicas, validado no MySQL local.
 Os [campos, restrições e limites de validação](authentication.md#4-persistência-aplicada-e-validada)
-estão documentados; não há endpoints novos nesta etapa.
+estão documentados. O incremento seguinte implementou login adulto, sessão e
+logout com CSRF e limites compartilhados, sem alteração adicional de esquema.
 
 ## Direção proposta para autenticação
 

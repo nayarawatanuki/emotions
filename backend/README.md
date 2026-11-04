@@ -235,6 +235,75 @@ e sem diferenças entre o esquema e os modelos. Os caminhos de reversão
 continuam validados somente offline, sem execução de down no MySQL.
 Detalhes e limites estão no [desenho de autenticação](../docs/architecture/authentication.md).
 
+## Login adulto na API
+
+O módulo é habilitado explicitamente com `AUTH_ENABLED=true` e exige o banco
+atualizado. O padrão mantém somente a base pública. Os testes não criam um ADM
+permanente; a desenvolvedora define sua própria credencial com `admin:create-first`.
+
+| Configuração | Regra |
+| --- | --- |
+| `AUTH_ENABLED` | `false` por padrão; `true` exige `DB_ENABLED=true` |
+| `AUTH_ORIGIN` | Origem exata do cliente, sem barra final, caminho ou credenciais |
+| `AUTH_SECRET` | 32 bytes aleatórios em 64 caracteres hexadecimais minúsculos, privados e compartilhados entre instâncias |
+
+A configuração local ganhou uma chave privada no `.env`, com modo 600 e sem
+alterar as credenciais MySQL; o valor não foi exibido nem versionado. Em outros
+ambientes, gerar uma chave própria com `crypto.randomBytes(32)` e guardá-la no
+ambiente seguro. Não copiar chaves de teste. O módulo permanece desativado por
+padrão; para executar a API local com o módulo após a revisão:
+
+```sh
+AUTH_ENABLED=true yarn start:dev
+```
+
+Mantenha o host/origem coerentes: HTTP é aceito apenas com bind e origem de
+loopback fora de produção. HTTPS exige cookie Secure e requisição reconhecida
+como segura. O proxy permanece não confiável; a implantação de HTTPS/proxy tem
+revisão própria e ainda não foi validada em ambiente de produção.
+
+| Endpoint | Contrato |
+| --- | --- |
+| `POST /auth/login` | JSON com somente `username` e `password`; retorna cookie, identidade mínima, CSRF e prazos |
+| `GET /auth/session` | Exige cookie válido; consulta estado atual e renova o prazo de inatividade |
+| `POST /auth/logout` | Exige cookie, CSRF e JSON; revoga a sessão atual, limpa o cookie e retorna 204 |
+
+Escritas exigem `Origin: <AUTH_ORIGIN>`, `Content-Type: application/json` e
+`X-Emotions-Request: 1`. Logout exige também `X-CSRF-Token`, obtido no login ou
+na consulta de sessão e mantido somente em memória. O cookie é HttpOnly, Path=/,
+SameSite=Lax e, em HTTPS, Secure com prefixo `__Host-`. Não há CORS liberado;
+a integração por proxy Vite e as telas de acesso ficam para outra etapa.
+
+A sessão expira após 30 minutos de inatividade ou oito horas absolutas. Login
+válido troca o identificador e revoga o cookie anterior recebido. O guard global
+consulta papel/estado atual e exige `@AllowedRoles(...)` em cada rota protegida;
+rotas deliberadamente públicas usam `@PublicRoute()`. Profissional precisa de
+perfil não arquivado; ADM não herda permissão de profissional; crianças não usam
+essa rota. Novos módulos privados só devem ser carregados junto da autenticação.
+
+Os limites iniciais contam solicitações, inclusive bem-sucedidas: cinco por
+origem/username e trinta por origem em 15 minutos. O peer TCP é usado sem confiar
+em X-Forwarded-For. Os contadores MySQL são consumidos atomicamente e 429 informa
+Retry-After. Duas verificações Argon2 podem ocorrer ao mesmo tempo por processo,
+sem fila; o pool MySQL permite cinco conexões e até 25 esperas.
+
+A validação de login usa dados desconhecidos, rejeita campos extras e preserva
+os bytes da senha. Erros não revelam existência ou estado da conta. A conta e o
+perfil são revalidados em transação depois do hash. Nenhuma alteração em sessões
+consome tentativas ou altera resultados de atividades.
+
+Os testes HTTP com MySQL usam transações externas e savepoints; contas e sessões
+sintéticas são revertidas. Os testes concorrentes de contadores usam transações
+independentes, para validar serialização real, e removem exclusivamente suas
+chaves HMAC sintéticas ao terminar. Ambos exigem o banco local vazio. O script
+`test:database` continua separado da verificação sem banco.
+
+A limpeza de contadores antigos e sessões expiradas ainda não é automática;
+retenção, tarefa operacional de limpeza, eventos de segurança, avaliação de
+senhas comprometidas, MFA e recuperação do ADM precisam de revisão antes de
+implantação pública. A autorização sobre crianças específicas ainda será
+implementada nos respectivos serviços. Veja o [contrato e as limitações](../docs/architecture/authentication.md).
+
 ## Primeiro administrador — comando local
 
 Após revisar esta etapa e configurar a conexão da aplicação no `.env`, execute
@@ -271,8 +340,8 @@ duas conexões e a exclusão do hash das consultas padrão. A suíte é separada
 yarn test:database
 ```
 
-Esse comando prepara a credencial do primeiro ADM; login, sessões, recuperação
-e telas de acesso serão implementados em etapas próprias. Veja o
+Esse comando prepara a credencial do primeiro ADM. O login adulto já existe
+na API; recuperação e telas de acesso serão implementadas em etapas próprias. Veja o
 [plano de autenticação](../docs/architecture/authentication.md).
 
 ## Controles e limites desta etapa
@@ -285,8 +354,9 @@ e telas de acesso serão implementados em etapas próprias. Veja o
 - Encerramento de aplicação habilitado nos sinais de parada pelo Nest.
 - Não há CORS liberado, arquivos estáticos ou telemetria externa configurados.
 
-Esta base ainda não oferece login HTTP, sessões, autorização, controle de tentativas,
-fluxos de persistência do domínio, validação de DTOs ou processamento de uploads. Não deve ser
+Esta base oferece login adulto, sessões revogáveis, CSRF, papéis e limites
+de login. Cadastro/convites, recuperação, acesso infantil, serviços de atividades
+e processamento de uploads continuam pendentes. Não deve ser
 apresentada como pronta para atender dados de crianças. HTTPS e configuração
 de proxy serão definidos para o ambiente de implantação; não se deve presumir
 que estes cabeçalhos substituam esses controles.

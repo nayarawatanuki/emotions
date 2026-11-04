@@ -214,6 +214,34 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Nenhuma dependência ou lockfile alterado; login HTTP e emissão/consumo de links
   continuam para etapas posteriores.
 
+## Login adulto — implementado, em revisão
+
+- Aprovados login de ADM/profissional, consulta da sessão, logout, CSRF, papéis
+  e prazos de 30 min de inatividade e 8 h absolutas.
+- Módulo habilitado explicitamente; configuração valida origem, bind, cookie e
+  chave privada. Nenhuma dependência, lockfile ou estrutura de banco alterada.
+- Sessões opacas, digests privados, renovação limitada pelo prazo absoluto,
+  troca de identificador, revogação e revalidação da conta/perfil sob lock.
+- Requisições autenticadas renovam a inatividade em leituras e escritas, sempre
+  limitadas pelo prazo absoluto. Escritas exigem origem exata, JSON e cabeçalho customizado;
+  escritas autenticadas exigem também CSRF vinculado à sessão.
+- Limites compartilhados: 5 solicitações por origem/username e 30 por origem
+  em 15 minutos, inclusive sucessos; dois hashes simultâneos sem fila por processo.
+- Pool com até 25 esperas; nenhuma confiança em cabeçalhos de proxy arbitrários.
+- Chave de autenticação preparada somente no `.env` privado, sem exibição do valor,
+  sem ativação permanente do módulo ou criação de conta administrativa real.
+- Tipos, lint, build, 181 testes unitários, 10 HTTP e 67 de MySQL/HTTP passaram
+  (258 no total). Auditoria: zero vulnerabilidades conhecidas em 377 dependências,
+  com os avisos existentes de Yarn/minimatch preservados.
+- Concorrência real: exatamente 5 de 12 reservas por par aceitas; limite global
+  de 30 respeitado, sem criar chaves novas após bloquear a origem.
+- Conferência final: doze tabelas da aplicação vazias, três migrations e zero
+  diferenças de esquema. Contas/sessões revertidas e contadores sintéticos limpos.
+- API iniciou com MySQL e autenticação; Chrome exibiu a recusa da sessão anônima.
+  A instância temporária foi encerrada. Telas de login ainda não foram alteradas.
+- Cadastro/ativação, recuperação, acesso infantil, telas e limpeza operacional
+  permanecem para etapas posteriores; implantação pública ainda exige revisão.
+
 ## Critérios de validação
 
 ### Autenticação — hash e criação do primeiro ADM concluídos (`0513188`)

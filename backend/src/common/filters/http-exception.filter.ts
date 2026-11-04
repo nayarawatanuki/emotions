@@ -1,3 +1,4 @@
+import { RateLimitException } from '../exceptions/rate-limit.exception.js';
 import { Catch, HttpException, Logger } from '@nestjs/common';
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
@@ -51,6 +52,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     const status = getStatus(exception);
+    if (exception instanceof RateLimitException)
+      response.setHeader(
+        'Retry-After',
+        Math.max(1, Math.ceil(exception.retryAfterSeconds)),
+      );
 
     if (status >= 500) {
       this.logger.error('Falha interna ao processar uma requisição da API.');

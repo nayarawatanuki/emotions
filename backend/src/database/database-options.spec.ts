@@ -24,6 +24,7 @@ describe('createDatabaseOptions', () => {
       charset: 'utf8mb4',
       connectTimeout: 5000,
       poolSize: 5,
+      extra: { queueLimit: 25 },
       supportBigNumbers: true,
       bigNumberStrings: true,
     });

@@ -22,14 +22,20 @@ Seguir integralmente `../.codex/agents.md` e as instruções da desenvolvedora.
 
 ## Estado atual
 
-A base oferece somente liveness em `/health`; esse endpoint não verifica o banco.
+A base pública oferece liveness em `/health`; esse endpoint não verifica o banco.
 Existe uma base de conexão TypeORM/MySQL, desativada por padrão.
 O esquema inicial foi aplicado e validado, sem dados reais.
 A unificação em nove entidades, com `activity_results` acompanhando realização
 e desfecho, foi aplicada e validada. Permissões temporárias foram revogadas.
 Hash Argon2id nativo e criação local do primeiro ADM estão implementados.
 Nenhum ADM real foi criado na validação; os testes usam fixtures revertidas.
-Login HTTP, sessões, autorização e serviços transacionais do domínio ainda não estão implementados.
+Login adulto HTTP, sessões, CSRF, guard por papel e limites compartilhados estão
+implementados, habilitados por AUTH_ENABLED e configuração validada. Os prazos
+aprovados são 30 min de inatividade e 8 h absolutas. Cadastro/convites, recuperação,
+acesso infantil e serviços transacionais de atividades continuam pendentes.
+Nenhum ADM real foi criado nos testes; contadores sintéticos de concorrência são
+removidos por suas chaves específicas. Não carregar módulos privados quando a
+autenticação estiver desativada.
 A terceira migration foi aplicada e validada: sessões, tokens, limites e hash
 anulável para contas não ativas. Existem doze tabelas da aplicação e duas
 técnicas, sem dados reais. O ALTER temporário em accounts foi revogado.
