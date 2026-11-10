@@ -304,6 +304,46 @@ senhas comprometidas, MFA e recuperação do ADM precisam de revisão antes de
 implantação pública. A autorização sobre crianças específicas ainda será
 implementada nos respectivos serviços. Veja o [contrato e as limitações](../docs/architecture/authentication.md).
 
+## Cadastro profissional e primeiro acesso — API
+
+O incremento usa o mesmo `AUTH_ENABLED`, origem, sessão e CSRF do login. Nenhuma
+migration ou configuração nova é necessária. Somente ADM autenticado pode criar
+profissionais pendentes, sem senha inicial, e reemitir links.
+
+| Endpoint | Corpo JSON | Resultado |
+| --- | --- | --- |
+| `POST /professionals` | `name`, `username` | 201: identidade mínima e link de ativação |
+| `POST /professionals/:id/activation` | `{}` | 201: novo link, invalidando o anterior não consumido |
+| `POST /auth/activate` | `token`, `password` | 204: senha protegida, conta ativa e token consumido |
+
+As duas primeiras rotas exigem sessão de ADM, origem exata, JSON,
+`X-Emotions-Request: 1` e `X-CSRF-Token`. A ativação é autorizada pelo próprio token,
+com origem/JSON/cabeçalho customizado, sem login automático. Um profissional não
+pode cadastrar outro ou escolher papel/estado/conta de destino no corpo.
+
+O link vale 24 horas, contém 32 bytes aleatórios no fragmento da URL e somente
+seu digest é gravado. Ele é devolvido apenas ao ADM na emissão e não pode ser
+recuperado em texto simples. Conta e perfil são gravados na mesma transação;
+senha e consumo do token também. A reemissão preserva histórico e não redefine
+senha de conta ativa. Links inválidos/usados/expirados/revogados têm erro 400
+genérico. Cadastro de username duplicado retorna 409.
+
+A URL `/activate-account#token=...` reserva a futura tela do frontend; **a tela
+não está implementada nesta etapa**. O contrato HTTP pode ser exercitado pela
+API; não há e-mail enviado ou conta real criada pelos testes. Após ativar, o
+profissional faz login normal. Recuperação de senha é uma etapa separada.
+
+Ativação limita dez solicitações por peer TCP em 15 minutos, usando HMAC e o
+escopo existente `token_redemption`. A capacidade de dois cálculos de senha é
+compartilhada com o login. A conta e a sessão do ADM são conferidas novamente
+sob lock antes de emitir o convite. A ativação também exige emissor ativo,
+conta ainda pendente e perfil não arquivado.
+
+As suítes de HTTP usam rollback de fixtures; a concorrência real usa commits
+sintéticos temporários e limpeza por IDs exatos, com manifesto privado de
+recuperação sem segredos. Ambas exigem banco local vazio. Detalhes estão no
+[desenho de cadastro e ativação](../docs/architecture/professional-onboarding.md).
+
 ## Primeiro administrador — comando local
 
 Após revisar esta etapa e configurar a conexão da aplicação no `.env`, execute
@@ -355,7 +395,7 @@ na API; recuperação e telas de acesso serão implementadas em etapas próprias
 - Não há CORS liberado, arquivos estáticos ou telemetria externa configurados.
 
 Esta base oferece login adulto, sessões revogáveis, CSRF, papéis e limites
-de login. Cadastro/convites, recuperação, acesso infantil, serviços de atividades
+de login. Recuperação, acesso infantil, serviços de atividades
 e processamento de uploads continuam pendentes. Não deve ser
 apresentada como pronta para atender dados de crianças. HTTPS e configuração
 de proxy serão definidos para o ambiente de implantação; não se deve presumir

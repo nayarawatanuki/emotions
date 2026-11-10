@@ -1,3 +1,4 @@
+import { ProfessionalsModule } from './modules/professionals/professionals.module.js';
 import { readAuthEnvironment } from './config/auth-environment.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { Module } from '@nestjs/common';
@@ -13,11 +14,14 @@ export class AppModule {
   static register(source: NodeJS.ProcessEnv): DynamicModule {
     const database = readDatabaseEnvironment(source);
     const auth = readAuthEnvironment(source);
+    const authentication = auth ? AuthModule.register(auth) : null;
     return {
       module: AppModule,
       imports: [
         ...(database ? [DatabaseModule.register(database)] : []),
-        ...(auth ? [AuthModule.register(auth)] : []),
+        ...(authentication
+          ? [authentication, ProfessionalsModule.register(authentication)]
+          : []),
       ],
     };
   }

@@ -1,3 +1,4 @@
+import { PasswordCapacityService } from './password-capacity.service.js';
 import { PasswordService } from './password.service.js';
 import { PasswordVerificationService } from './password-verification.service.js';
 describe('bounded password verification', () => {
@@ -6,7 +7,10 @@ describe('bounded password verification', () => {
     vi.spyOn(passwords, 'hash').mockResolvedValue('dummy-hash');
     vi.spyOn(passwords, 'isSupportedHash').mockReturnValue(false);
     const verify = vi.spyOn(passwords, 'verify').mockResolvedValue(true);
-    const service = new PasswordVerificationService(passwords);
+    const service = new PasswordVerificationService(
+      passwords,
+      new PasswordCapacityService(),
+    );
     await service.onModuleInit();
     expect(await service.verify('a synthetic password', null)).toBe(false);
     expect(await service.verify('a synthetic password', 'corrupt')).toBe(false);
@@ -27,7 +31,10 @@ describe('bounded password verification', () => {
       release = resolve;
     });
     const verify = vi.spyOn(passwords, 'verify').mockReturnValue(pending);
-    const service = new PasswordVerificationService(passwords);
+    const service = new PasswordVerificationService(
+      passwords,
+      new PasswordCapacityService(),
+    );
     await service.onModuleInit();
     const first = service.verify('synthetic phrase', 'stored');
     const second = service.verify('synthetic phrase', 'stored');

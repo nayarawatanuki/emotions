@@ -1,9 +1,10 @@
 # Autenticação e acesso — implementação incremental
 
-Atualizado em 4 de novembro de 2026. Hash e criação local do primeiro ADM foram
+Atualizado em 10 de novembro de 2026. Hash e criação local do primeiro ADM foram
 concluídos no commit `0513188`; a persistência de autenticação, no `dd7c6cf`.
-O incremento atual implementa login adulto, consulta da sessão e logout, com
-os prazos aprovados. Convites e recuperação continuam para etapas posteriores.
+Login adulto, consulta da sessão e logout foram concluídos no commit `9690612`.
+O incremento atual implementa cadastro profissional pelo ADM, reemissão e
+ativação de acesso em 24 h na API; telas e recuperação continuam para outras etapas.
 Nenhuma conta real foi criada nos testes; nenhuma nova dependência ou migration
 foi necessária para os endpoints.
 
@@ -14,7 +15,7 @@ estados `pending`, `active` e `suspended`, username único normalizado e campo
 de hash excluído das seleções padrão. Há proteção e verificação local de senha
 e comando para o primeiro ADM. Há login adulto, sessões revogáveis, proteção
 de rotas e limites compartilhados, habilitados explicitamente por configuração.
-Recuperação e primeiro acesso profissional ainda estão pendentes. `/health`
+A ativação profissional já existe na API; recuperação e telas ainda estão pendentes. `/health`
 continua público.
 
 Implementação: credenciais locais protegidas por Argon2id e sessões opacas revogáveis
@@ -83,9 +84,13 @@ usuário de migrations. Senhas não são lidas do ambiente nem de argumentos.
 A criação efetiva do ADM é uma escrita de dados e exige autorização própria
 após a revisão do comando.
 
-## 2. Cadastro, ativação e recuperação do profissional
+## 2. Cadastro e ativação implementados; recuperação planejada
 
 Fluxo aprovado: entrega manual do link pelo ADM, por um canal confiável.
+Cadastro, reemissão e consumo já estão implementados na API. O
+[contrato de cadastro e primeiro acesso](professional-onboarding.md) descreve
+as rotas, regras, preservação de histórico e testes de concorrência. A URL usa
+a futura tela `/activate-account`; a interface ainda não existe neste incremento.
 
 | Operação | Fluxo proposto |
 | --- | --- |
@@ -112,7 +117,7 @@ removerá o fragmento após carregá-lo e enviará o token no corpo da requisiç
 As telas não terão recursos de terceiros e usarão política de referências
 restrita. Link expirado terá ação para solicitar outro ao ADM.
 
-## 3. Sessões e HTTP — implementado, aguardando revisão
+## 3. Sessões e HTTP — concluídos (`9690612`)
 
 Os prazos adultos foram aprovados: 30 minutos de inatividade e oito horas de
 validade absoluta, sem sessão permanente. O servidor usa o relógio UTC do MySQL,
@@ -128,7 +133,7 @@ Contas ativas dos papéis ADM e profissional podem entrar; profissionais precisa
 de perfil não arquivado. Crianças são recusadas nesta rota. Falhas de credencial,
 conta inexistente, pendência e suspensão têm a mesma resposta 401. Hashes ausentes
 ou malformados usam uma verificação fictícia de custo equivalente. Há no máximo
-duas verificações de senha simultâneas por processo, sem fila; excesso recebe 429.
+dois cálculos de senha simultâneos por processo, compartilhados com a ativação, sem fila; excesso recebe 429.
 A conta, o hash e o perfil são conferidos novamente sob lock depois da verificação
 cara. Isso impede criar uma sessão usando um estado que mudou durante o cálculo.
 
@@ -219,12 +224,12 @@ Os prazos de acesso infantil continuam para sua etapa específica.
   ADM emissor, digest único, expiração, consumo e revogação. FKs compostas e CHECK
   restringem os papéis; consumo e revogação são mutuamente exclusivos. O consumo
   registrado precisa estar dentro da validade. Isso não verifica o relógio atual:
-  rejeitar uso expirado e consumir somente uma vez exige transação no serviço.
+  o serviço de ativação já rejeita uso expirado e serializa o consumo em transação.
 - `auth_rate_limits`: escopo, digest da chave, janela, contador unsigned e bloqueio
   temporário. Uma chave tem um contador por escopo; escopos iniciais são
   `login_origin`, `login_origin_account` e `token_redemption`. Não há IP nem username
   em texto simples. Atualização atômica, limites de login e resposta 429 estão implementados; o
-  escopo de consumo de links continua reservado para sua etapa.
+  escopo de consumo de links já limita a ativação.
 - `accounts.password_hash`: agora anulável no modelo. O CHECK permite
   ausência somente enquanto a conta não está ativa e rejeita hash vazio. Uma conta
   suspensa pode continuar sem senha, inclusive se suspensa antes da ativação.
@@ -236,8 +241,7 @@ Digests de 64 caracteres usam ASCII com comparação binária e `select: false`.
 O modelo não guarda o segredo original nem fornece DTOs públicos. O tamanho no
 banco não substitui a validação hexadecimal pelo serviço.
 
-Sessões usam SHA-256 de segredos aleatórios de 32 bytes; links seguirão essa
-mesma direção. Limites de login já usam HMAC-SHA-256 com chave compartilhada
+Sessões e links de ativação usam SHA-256 de segredos aleatórios de 32 bytes. Limites de login já usam HMAC-SHA-256 com chave compartilhada
 entre instâncias e configuração própria. A retenção/limpeza dos registros será
 validada antes de implantação pública. Os índices de expiração
 preparam as consultas de limpeza, sem executar exclusões automáticas nesta etapa.
@@ -295,10 +299,11 @@ foram validados neste incremento.
 1. Hash e criação do primeiro ADM concluídos no commit `0513188`.
 2. Persistência e entrega manual aprovadas; migration aplicada e restrições
    reais validadas, concluídas no commit `dd7c6cf`.
-3. Login adulto, consulta da sessão, logout, guard e limites implementados;
-   aguardam revisão e commit após validação local.
-4. Implementar cadastro profissional exclusivo do ADM e convites, com testes
-   reais de transação, token expirado/usado, duplo consumo e rollback.
+3. Login adulto, consulta da sessão, logout, guard e limites concluídos no
+   commit `9690612`.
+4. Cadastro profissional exclusivo do ADM, reemissão e ativação implementados
+   na API; testes de transação, prazo, consumo único, concorrência e rollback
+   preparados para revisão do incremento. Recuperação permanece separada.
 5. Integrar telas acessíveis no frontend e validar no Chrome, sem expor conteúdo
    infantil por uma sessão ou papel indevido.
 

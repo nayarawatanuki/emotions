@@ -1,3 +1,5 @@
+import { AccountActivationService } from './services/account-activation.service.js';
+import { PasswordCapacityService } from './services/password-capacity.service.js';
 import { Module } from '@nestjs/common';
 import type { DynamicModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -17,9 +19,12 @@ export class AuthModule {
     return {
       module: AuthModule,
       controllers: [AuthController],
+      exports: [AccountActivationService],
       providers: [
         { provide: AUTH_ENVIRONMENT, useValue: environment },
         PasswordService,
+        PasswordCapacityService,
+        AccountActivationService,
         PasswordVerificationService,
         AuthLoginService,
         AuthSessionService,

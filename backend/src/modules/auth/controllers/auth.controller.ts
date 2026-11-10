@@ -1,3 +1,5 @@
+import { AccountActivationService } from '../services/account-activation.service.js';
+import { parseActivationInput } from '../dto/activation-input.js';
 import {
   Body,
   Controller,
@@ -31,6 +33,8 @@ export class AuthController {
     @Inject(AUTH_ENVIRONMENT) private readonly environment: AuthEnvironment,
     @Inject(AuthLoginService) private readonly loginService: AuthLoginService,
     @Inject(AuthSessionService) private readonly sessions: AuthSessionService,
+    @Inject(AccountActivationService)
+    private readonly activation: AccountActivationService,
   ) {}
 
   @PublicRoute()
@@ -51,6 +55,20 @@ export class AuthController {
     );
     writeSessionCookie(response, this.environment, result.token);
     return result.session;
+  }
+
+  @PublicRoute()
+  @Post('activate')
+  @HttpCode(204)
+  async activate(
+    @Body() body: unknown,
+    @Req() request: Request,
+  ): Promise<void> {
+    assertAuthOrigin(request, this.environment, true);
+    await this.activation.activate(
+      parseActivationInput(body),
+      request.socket.remoteAddress,
+    );
   }
 
   @AllowedRoles('administrator', 'professional')

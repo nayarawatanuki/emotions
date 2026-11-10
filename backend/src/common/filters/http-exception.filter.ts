@@ -7,6 +7,10 @@ const publicErrors: Record<number, { code: string; message: string }> = {
   400: { code: 'BAD_REQUEST', message: 'Requisição inválida.' },
   401: { code: 'UNAUTHORIZED', message: 'Autenticação necessária.' },
   403: { code: 'FORBIDDEN', message: 'Acesso não permitido.' },
+  409: {
+    code: 'CONFLICT',
+    message: 'Não foi possível concluir a operação no estado atual.',
+  },
   404: { code: 'NOT_FOUND', message: 'Recurso não encontrado.' },
   413: {
     code: 'PAYLOAD_TOO_LARGE',

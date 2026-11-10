@@ -1,15 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { OnModuleInit } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { RateLimitException } from '../../../common/exceptions/rate-limit.exception.js';
+import { PasswordCapacityService } from './password-capacity.service.js';
 import { PasswordService } from './password.service.js';
 
 @Injectable()
 export class PasswordVerificationService implements OnModuleInit {
   private dummyHash: string | null = null;
-  private active = 0;
   constructor(
     @Inject(PasswordService) private readonly passwords: PasswordService,
+    @Inject(PasswordCapacityService)
+    private readonly capacity: PasswordCapacityService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -19,20 +20,16 @@ export class PasswordVerificationService implements OnModuleInit {
   }
 
   async verify(password: string, stored: string | null): Promise<boolean> {
-    if (!this.dummyHash)
-      throw new Error('Verificação de senhas não inicializada.');
-    if (this.active >= 2) throw new RateLimitException(1);
-    this.active++;
-    try {
+    const dummyHash = this.dummyHash;
+    if (!dummyHash) throw new Error('Verificação de senhas não inicializada.');
+    return this.capacity.run(async () => {
       const supported =
         stored !== null && this.passwords.isSupportedHash(stored);
       const matches = await this.passwords.verify(
         password,
-        supported ? stored : this.dummyHash,
+        supported ? stored : dummyHash,
       );
       return supported && matches;
-    } finally {
-      this.active--;
-    }
+    });
   }
 }

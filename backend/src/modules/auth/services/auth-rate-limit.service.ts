@@ -5,11 +5,17 @@ import { isIP } from 'node:net';
 import { AUTH_ENVIRONMENT } from '../../../config/auth-environment.js';
 import type { AuthEnvironment } from '../../../config/auth-environment.js';
 import { RateLimitException } from '../../../common/exceptions/rate-limit.exception.js';
+import type { AuthRateLimit } from '../entities/auth-rate-limit.entity.js';
 import { AuthRateLimitEntity } from '../entities/auth-rate-limit.entity.js';
 import { keyedDigest } from '../security/session-tokens.js';
 import { databaseNow } from './auth-time.js';
 
 const windowMilliseconds = 15 * 60_000;
+interface CounterKey {
+  scope: AuthRateLimit['scope'];
+  key: string;
+  maximum: number;
+}
 
 @Injectable()
 export class AuthRateLimitService {
@@ -19,11 +25,7 @@ export class AuthRateLimitService {
   ) {}
 
   async consume(address: string | undefined, username: string): Promise<void> {
-    if (!address || isIP(address) === 0) throw new BadRequestException();
-    const origin =
-      address.startsWith('::ffff:') && isIP(address.slice(7)) === 4
-        ? address.slice(7)
-        : address;
+    const origin = this.origin(address);
     const keys = [
       {
         scope: 'login_origin' as const,
@@ -39,6 +41,32 @@ export class AuthRateLimitService {
         maximum: 5,
       },
     ];
+    await this.consumeKeys(keys);
+  }
+
+  async consumeActivation(address: string | undefined): Promise<void> {
+    const origin = this.origin(address);
+    await this.consumeKeys([
+      {
+        scope: 'token_redemption',
+        key: keyedDigest(this.environment.secret, 'activation-origin-v1', [
+          origin,
+        ]),
+        maximum: 10,
+      },
+    ]);
+  }
+
+  private origin(address: string | undefined): string {
+    if (!address || isIP(address) === 0) throw new BadRequestException();
+    const origin =
+      address.startsWith('::ffff:') && isIP(address.slice(7)) === 4
+        ? address.slice(7)
+        : address;
+    return origin;
+  }
+
+  private async consumeKeys(keys: readonly CounterKey[]): Promise<void> {
     // Stable scope order prevents concurrent requests from locking counters in reverse order.
     const retryAfter = await this.source.transaction(async (manager) => {
       const now = await databaseNow(manager);

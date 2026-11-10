@@ -209,6 +209,27 @@ sintéticas, removidos por suas chaves exatas no finally de cada teste. Exigem
 banco vazio antes e depois. Não criam ADM ou profissional permanente, nem leem
 registros antigos. [Configuração e contrato HTTP](../README.md#login-adulto-na-api).
 
+## Cadastro profissional e ativação — serviços sobre o esquema existente
+
+Conta pendente sem hash, perfil e token são criados em uma única transação.
+Ativação grava o hash, altera a conta para ativa e consome o token na mesma
+transação; tokens anteriores e sessões antigas são invalidados conforme o
+fluxo. A reemissão marca links antigos, preservando os registros. Nenhuma
+migration ou privilégio adicional foi necessário.
+
+Operações de duas contas travam os UUIDs em ordem estável, antes de perfil,
+sessão e token. A identidade e sessão do ADM são conferidas dentro da transação;
+o consumo confere de novo prazo, finalidade, estado e perfil depois do hash,
+que é calculado sem locks. A ativação usa o escopo `token_redemption` já existente.
+
+Os testes HTTP usam savepoints e rollback. As disputas reais de criação,
+ativação e reemissão usam fixtures sintéticas com commits temporários, removidas
+por IDs/chaves exatos após cada caso, com conferência das doze tabelas vazias.
+Um manifesto privado temporário de IDs permite inspecionar uma interrupção sem
+adivinhar registros; não contém senha, token ou credenciais e é removido após
+limpeza bem-sucedida. Nunca executar esses testes em banco com dados reais.
+[Contrato e limites](../../docs/architecture/professional-onboarding.md).
+
 ## Comandos Yarn e execução autorizada
 
 Dentro de `backend/`:

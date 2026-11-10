@@ -31,8 +31,12 @@ Hash Argon2id nativo e criação local do primeiro ADM estão implementados.
 Nenhum ADM real foi criado na validação; os testes usam fixtures revertidas.
 Login adulto HTTP, sessões, CSRF, guard por papel e limites compartilhados estão
 implementados, habilitados por AUTH_ENABLED e configuração validada. Os prazos
-aprovados são 30 min de inatividade e 8 h absolutas. Cadastro/convites, recuperação,
-acesso infantil e serviços transacionais de atividades continuam pendentes.
+aprovados são 30 min de inatividade e 8 h absolutas. Cadastro profissional pelo
+ADM, reemissão e ativação em 24 h estão implementados na API, sem nova migration.
+Recuperação, frontend, acesso infantil e serviços de atividades continuam pendentes.
+Login e ativação compartilham dois cálculos de senha simultâneos; a ativação tem
+limite próprio por origem. Testes concorrentes de onboarding usam fixtures
+sintéticas confirmadas, manifesto privado sem segredos e limpeza por IDs exatos.
 Nenhum ADM real foi criado nos testes; contadores sintéticos de concorrência são
 removidos por suas chaves específicas. Não carregar módulos privados quando a
 autenticação estiver desativada.

@@ -214,7 +214,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Nenhuma dependência ou lockfile alterado; login HTTP e emissão/consumo de links
   continuam para etapas posteriores.
 
-## Login adulto — implementado, em revisão
+## Login adulto — concluído (`9690612`)
 
 - Aprovados login de ADM/profissional, consulta da sessão, logout, CSRF, papéis
   e prazos de 30 min de inatividade e 8 h absolutas.
@@ -241,6 +241,28 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   A instância temporária foi encerrada. Telas de login ainda não foram alteradas.
 - Cadastro/ativação, recuperação, acesso infantil, telas e limpeza operacional
   permanecem para etapas posteriores; implantação pública ainda exige revisão.
+
+## Cadastro profissional e ativação — implementados, em revisão
+
+- Cadastro exclusivo do ADM com conta/perfil/token na mesma transação, conta
+  pendente e sem senha inicial; validação rejeita papel/estado/senha no corpo.
+- Link nativo de 32 bytes, com digest privado e fragmento de URL em origem
+  configurada, validade de 24 h e entrega manual pelo ADM.
+- Reemissão somente para pendentes, invalidando links anteriores e preservando
+  histórico; ativação e consumo são atômicos, sem login automático.
+- Revalidação do ADM/sessão dentro da transação; consumo exige conta pendente,
+  perfil não arquivado, emissor ativo e token ainda válido após o hash.
+- Locks de contas ordenados por UUID; capacidade de dois cálculos de senha
+  compartilhada com login e limite de dez ativações por origem em 15 minutos.
+- Sem migration, dependência, lockfile, novo segredo ou permissão de banco.
+- Testes concorrentes usam fixtures sintéticas temporárias com limpeza por IDs
+  exatos e manifesto privado de recuperação sem segredos.
+- A tela `/activate-account` e a recuperação de senha continuam para etapas
+  posteriores; este incremento entrega o contrato HTTP.
+- Validação: tipos, lint, build, 207 testes unitários, 10 HTTP e 94 com MySQL
+  passaram (311 no total). Auditoria: 377 dependências, zero vulnerabilidades.
+- Chrome confirmou saúde e bloqueio sem sessão; pós-teste confirmou as doze
+  tabelas vazias, três migrations aplicadas e nenhuma divergência de esquema.
 
 ## Critérios de validação
 

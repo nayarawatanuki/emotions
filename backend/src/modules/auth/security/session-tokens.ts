@@ -1,23 +1,11 @@
-import {
-  createHash,
-  createHmac,
-  randomBytes,
-  timingSafeEqual,
-} from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import { isOpaqueToken } from './opaque-tokens.js';
+export {
+  createOpaqueToken as createSessionToken,
+  isOpaqueToken as isSessionToken,
+  opaqueTokenDigest as sessionDigest,
+} from './opaque-tokens.js';
 
-export function createSessionToken(): string {
-  return randomBytes(32).toString('base64url');
-}
-export function isSessionToken(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    /^[A-Za-z0-9_-]{43}$/.test(value) &&
-    Buffer.from(value, 'base64url').toString('base64url') === value
-  );
-}
-export function sessionDigest(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
-}
 export function keyedDigest(
   secret: string,
   context: string,
@@ -39,7 +27,7 @@ export function verifyCsrf(
   candidate: unknown,
 ): boolean {
   return (
-    isSessionToken(candidate) &&
+    isOpaqueToken(candidate) &&
     timingSafeEqual(
       Buffer.from(csrfToken(secret, token), 'base64url'),
       Buffer.from(candidate, 'base64url'),

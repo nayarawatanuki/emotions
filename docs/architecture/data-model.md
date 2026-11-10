@@ -426,6 +426,14 @@ Os [campos, restrições e limites de validação](authentication.md#4-persistê
 estão documentados. O incremento seguinte implementou login adulto, sessão e
 logout com CSRF e limites compartilhados, sem alteração adicional de esquema.
 
+## Cadastro profissional e primeiro acesso — implementação na API
+
+Cadastro exclusivo do ADM, reemissão e ativação usam as contas, perfis e tokens
+existentes. A conta nasce pendente e sem senha, e só é ativada no consumo único
+do link de 24 h. As transações preservam os registros de convites anteriores.
+O [desenho de onboarding](professional-onboarding.md) registra contratos,
+locks, proteção contra concorrência e limitações. Não houve mudança de esquema.
+
 ## Direção proposta para autenticação
 
 O [desenho de autenticação](authentication.md) detalha a proposta de hash nativo,
