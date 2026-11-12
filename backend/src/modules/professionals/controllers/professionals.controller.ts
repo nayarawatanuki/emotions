@@ -1,5 +1,10 @@
+import { ProfessionalDirectoryService } from '../services/professional-directory.service.js';
+import { parseDirectoryCursor } from '../dto/professional-directory.js';
+import type { ProfessionalDirectory } from '../dto/professional-directory.js';
 import {
   Body,
+  Get,
+  Query,
   Controller,
   Inject,
   Param,
@@ -24,7 +29,14 @@ export class ProfessionalsController {
   constructor(
     @Inject(ProfessionalOnboardingService)
     private readonly onboarding: ProfessionalOnboardingService,
+    @Inject(ProfessionalDirectoryService)
+    private readonly directory: ProfessionalDirectoryService,
   ) {}
+  @Get()
+  list(@Query() query: unknown): Promise<ProfessionalDirectory> {
+    return this.directory.list(parseDirectoryCursor(query));
+  }
+
   @Post()
   async create(
     @Body() body: unknown,

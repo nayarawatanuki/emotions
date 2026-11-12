@@ -312,6 +312,7 @@ profissionais pendentes, sem senha inicial, e reemitir links.
 
 | Endpoint | Corpo JSON | Resultado |
 | --- | --- | --- |
+| `GET /professionals?after=<UUID>` | Cursor UUID v4 opcional | 200: até 25 identidades mínimas e `nextCursor` |
 | `POST /professionals` | `name`, `username` | 201: identidade mínima e link de ativação |
 | `POST /professionals/:id/activation` | `{}` | 201: novo link, invalidando o anterior não consumido |
 | `POST /auth/activate` | `token`, `password` | 204: senha protegida, conta ativa e token consumido |
@@ -424,3 +425,13 @@ na API do Emotions. A auditoria após os ajustes reportou zero vulnerabilidades
 conhecidas entre 351 dependências; isso não garante ausência de falhas no código.
 
 Nenhum serviço de hospedagem ou telemetria externa foi configurado.
+
+### Diretório administrativo
+
+`GET /professionals` usa sessão exclusiva do ADM, verificação de origem e
+`no-store`; leituras não exigem CSRF. Retorna ID de perfil/conta, nome, usuário,
+status e indicador de arquivamento, sem senha, digest ou convite. Cursor opcional
+`after` aceita somente UUID v4; campos extras/duplicados são recusados. A consulta
+parametrizada ordena pelo ID do perfil, com página de 25 e leitura de 26 linhas
+para produzir `nextCursor`. Novos cadastros durante a navegação exigem atualizar
+para reiniciar a listagem. Não há mudança de schema ou índice neste incremento.

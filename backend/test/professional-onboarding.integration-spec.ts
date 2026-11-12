@@ -220,6 +220,97 @@ describe('professional registration and first access on real MySQL with rollback
       .getOneOrFail();
   }
 
+  it('lists only minimal professional identities for the administrator', async () => {
+    const created = await create();
+    const response = await request(app.getHttpServer())
+      .get('/professionals')
+      .set('Cookie', `emotions_session_local=${adminToken}`)
+      .expect(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.body.nextCursor).toBeNull();
+    expect(response.body.items).toHaveLength(2);
+    expect(
+      response.body.items.find(
+        (item: { id: string }) => item.id === created.professional.id,
+      ),
+    ).toEqual({ ...created.professional, archived: false });
+    for (const item of response.body.items)
+      expect(Object.keys(item).sort()).toEqual([
+        'accountId',
+        'archived',
+        'id',
+        'name',
+        'status',
+        'username',
+      ]);
+    expect(JSON.stringify(response.body)).not.toMatch(
+      /password|Digest|csrfToken|activation/,
+    );
+  });
+
+  it('protects directory access and rejects malformed or excessive query fields', async () => {
+    await request(app.getHttpServer()).get('/professionals').expect(401);
+    await request(app.getHttpServer())
+      .get('/professionals')
+      .set('Cookie', `emotions_session_local=${professionalToken}`)
+      .expect(403);
+    for (const query of [
+      '?after=invalid',
+      '?page=1',
+      '?after=a&after=b',
+      '?after=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&extra=x',
+    ])
+      await request(app.getHttpServer())
+        .get('/professionals' + query)
+        .set('Cookie', `emotions_session_local=${adminToken}`)
+        .expect(400);
+    await request(app.getHttpServer())
+      .get('/professionals')
+      .set('Cookie', `emotions_session_local=${adminToken}`)
+      .set('Origin', 'https://untrusted.example')
+      .expect(403);
+  });
+
+  it('paginates beyond 25 profiles without repetition and includes non-invitable states', async () => {
+    const accounts = [],
+      profiles = [];
+    for (let index = 0; index < 26; index++) {
+      const id = randomUUID();
+      accounts.push({
+        id,
+        name: `Synthetic directory ${index}`,
+        username: `fixture-directory-${index}`,
+        role: 'professional' as const,
+        status: index === 0 ? ('suspended' as const) : ('pending' as const),
+        passwordHash: null,
+      });
+      profiles.push({
+        id: randomUUID(),
+        accountId: id,
+        createdByAccountId: adminId,
+        archivedAt: index === 1 ? new Date() : null,
+      });
+    }
+    await runner.manager.getRepository(AccountEntity).insert(accounts);
+    await runner.manager.getRepository(ProfessionalEntity).insert(profiles);
+    const first = await request(app.getHttpServer())
+      .get('/professionals')
+      .set('Cookie', `emotions_session_local=${adminToken}`)
+      .expect(200);
+    expect(first.body.items).toHaveLength(25);
+    expect(first.body.nextCursor).toBe(first.body.items.at(-1).id);
+    const second = await request(app.getHttpServer())
+      .get('/professionals?after=' + first.body.nextCursor)
+      .set('Cookie', `emotions_session_local=${adminToken}`)
+      .expect(200);
+    expect(second.body.items).toHaveLength(2);
+    expect(second.body.nextCursor).toBeNull();
+    const all = [...first.body.items, ...second.body.items];
+    expect(new Set(all.map((item) => item.id)).size).toBe(27);
+    expect(all.some((item) => item.archived)).toBe(true);
+    expect(all.some((item) => item.status === 'suspended')).toBe(true);
+  });
+
   it('shares one password capacity provider between both modules', () =>
     expect(app.get(PasswordCapacityService, { each: true })).toHaveLength(1));
 

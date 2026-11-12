@@ -1,3 +1,8 @@
+import {
+  createProfessional,
+  loadProfessionals,
+  reissueInvitation
+} from '../src/features/professionals/professionals-api.ts'
 // Opt-in real HTTP test. Requires compiled backend, temporary API/Vite, and empty local DB.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -50,6 +55,8 @@ test('frontend client completes activation, login, session and logout through re
     profileId = randomUUID(),
     tokenId = randomUUID()
   const username = 'fixture_frontend_' + accountId
+  const newUsername = 'fixture_frontend_new_' + accountId
+  let createdIdentity: { id: string; accountId: string } | null = null
   const adminUsername = 'fixture_frontend_' + adminId
   const password = 'Synthetic frontend integration phrase 🎀'
   const token = createOpaqueToken()
@@ -77,6 +84,15 @@ test('frontend client completes activation, login, session and logout through re
       ])
     }
   ]
+  for (const user of [adminUsername, newUsername])
+    counterKeys.push({
+      scope: 'login_origin_account',
+      keyDigest: keyedDigest(
+        process.env.AUTH_SECRET,
+        'login-origin-account-v1',
+        ['127.0.0.1', user]
+      )
+    })
   let owned = false
   let cookie = ''
   async function assertEmpty() {
@@ -107,6 +123,7 @@ test('frontend client completes activation, login, session and logout through re
         tokenId,
         username,
         adminUsername,
+        newUsername,
         counterKeys
       }),
       { mode: 0o600, flag: 'wx' }
@@ -135,19 +152,17 @@ test('frontend client completes activation, login, session and logout through re
       await manager
         .getRepository(ProfessionalEntity)
         .insert({ id: profileId, accountId, createdByAccountId: adminId })
-      await manager
-        .getRepository(AccountTokenEntity)
-        .insert({
-          id: tokenId,
-          accountId,
-          issuedByAccountId: adminId,
-          purpose: 'activation',
-          tokenDigest: opaqueTokenDigest(token),
-          expiresAt: new Date(Date.now() + 86_400_000)
-        })
+      await manager.getRepository(AccountTokenEntity).insert({
+        id: tokenId,
+        accountId,
+        issuedByAccountId: adminId,
+        purpose: 'activation',
+        tokenDigest: opaqueTokenDigest(token),
+        expiresAt: new Date(Date.now() + 86_400_000)
+      })
     })
     globalThis.fetch = async (path, options) => {
-      assert.ok(String(path).startsWith('/api/auth/'))
+      assert.match(String(path), /^\/api\/(auth|professionals)(\/|\?|$)/)
       const headers = new Headers(options?.headers)
       if (options?.method === 'POST') headers.set('Origin', origin)
       if (cookie) headers.set('Cookie', cookie)
@@ -159,6 +174,39 @@ test('frontend client completes activation, login, session and logout through re
       if (issued.length) cookie = issued[0].split(';')[0]
       return response
     }
+    await login(adminUsername, password)
+    const administrator = await loadSession(new AbortController().signal)
+    const initial = await loadProfessionals(null, new AbortController().signal)
+    assert.equal(initial.items.length, 1)
+    assert.equal(initial.items[0].id, profileId)
+    const created = await createProfessional(
+      { name: 'Synthetic created through client', username: newUsername },
+      administrator.csrfToken,
+      origin
+    )
+    createdIdentity = created.professional
+    const updated = await reissueInvitation(
+      created.professional.id,
+      administrator.csrfToken,
+      origin
+    )
+    const oldToken = new URL(created.activation.url).hash.slice(7)
+    const newToken = new URL(updated.url).hash.slice(7)
+    await assert.rejects(
+      activateAccount(oldToken, password),
+      (failure) => failure instanceof ApiError && failure.status === 400
+    )
+    await activateAccount(newToken, password)
+    await assert.rejects(
+      reissueInvitation(
+        created.professional.id,
+        administrator.csrfToken,
+        origin
+      ),
+      (failure) => failure instanceof ApiError && failure.status === 409
+    )
+    await logout(administrator.csrfToken)
+    cookie = ''
     await activateAccount(token, password)
     assert.equal(cookie, '', 'Activation does not log in automatically')
     await assert.rejects(
@@ -196,7 +244,26 @@ test('frontend client completes activation, login, session and logout through re
         await source.transaction(async (manager) => {
           await manager
             .getRepository(AccountTokenEntity)
-            .delete({ id: tokenId, accountId })
+            .delete({ issuedByAccountId: adminId })
+          await manager
+            .getRepository(AuthSessionEntity)
+            .delete({ accountId: adminId })
+          const extra = await manager
+            .getRepository(AccountEntity)
+            .findOneBy({ username: newUsername })
+          if (extra) {
+            if (createdIdentity)
+              assert.equal(extra.id, createdIdentity.accountId)
+            await manager
+              .getRepository(AuthSessionEntity)
+              .delete({ accountId: extra.id })
+            await manager
+              .getRepository(ProfessionalEntity)
+              .delete({ accountId: extra.id, createdByAccountId: adminId })
+            await manager
+              .getRepository(AccountEntity)
+              .delete({ id: extra.id, username: newUsername })
+          }
           await manager.getRepository(AuthSessionEntity).delete({ accountId })
           await manager
             .getRepository(ProfessionalEntity)

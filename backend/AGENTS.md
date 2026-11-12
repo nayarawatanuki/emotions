@@ -33,7 +33,10 @@ Login adulto HTTP, sessões, CSRF, guard por papel e limites compartilhados est�
 implementados, habilitados por AUTH_ENABLED e configuração validada. Os prazos
 aprovados são 30 min de inatividade e 8 h absolutas. Cadastro profissional pelo
 ADM, reemissão e ativação em 24 h estão implementados na API, sem nova migration.
-Recuperação, frontend, acesso infantil e serviços de atividades continuam pendentes.
+Login/ativação e administração de profissionais estão integrados ao frontend.
+O diretório GET /professionals é exclusivo do ADM, com cursor UUID v4, 25 itens
+e projeção mínima, sem hash/token. Recuperação, acesso infantil e serviços de
+atividades continuam pendentes.
 Login e ativação compartilham dois cálculos de senha simultâneos; a ativação tem
 limite próprio por origem. Testes concorrentes de onboarding usam fixtures
 sintéticas confirmadas, manifesto privado sem segredos e limpeza por IDs exatos.

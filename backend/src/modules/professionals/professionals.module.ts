@@ -1,3 +1,4 @@
+import { ProfessionalDirectoryService } from './services/professional-directory.service.js';
 import { Module } from '@nestjs/common';
 import type { DynamicModule } from '@nestjs/common';
 import { ProfessionalsController } from './controllers/professionals.controller.js';
@@ -10,7 +11,7 @@ export class ProfessionalsModule {
       module: ProfessionalsModule,
       imports: [authentication],
       controllers: [ProfessionalsController],
-      providers: [ProfessionalOnboardingService],
+      providers: [ProfessionalOnboardingService, ProfessionalDirectoryService],
     };
   }
 }

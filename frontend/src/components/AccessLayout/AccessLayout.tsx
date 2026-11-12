@@ -3,7 +3,13 @@ import { Link } from 'react-router'
 import { Brand } from '../Brand/Brand'
 import './AccessLayout.css'
 
-export function AccessLayout({ children }: { children: ReactNode }) {
+export function AccessLayout({
+  children,
+  wide = false
+}: {
+  children: ReactNode
+  wide?: boolean
+}) {
   return (
     <div className="access-page">
       <a className="skip-link" href="#conteudo">
@@ -15,7 +21,11 @@ export function AccessLayout({ children }: { children: ReactNode }) {
           Voltar ao início
         </Link>
       </header>
-      <main id="conteudo" tabIndex={-1} className="access-main content-width">
+      <main
+        id="conteudo"
+        tabIndex={-1}
+        className={`access-main content-width${wide ? ' access-main-wide' : ''}`}
+      >
         <aside className="access-intro" aria-label="Nossa proposta">
           <div className="access-pieces" aria-hidden="true">
             <span>✦</span>

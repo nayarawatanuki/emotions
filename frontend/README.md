@@ -31,8 +31,8 @@ Para uma API temporária em outra porta, use `EMOTIONS_API_PORT=3100 yarn dev`.
 Essa variável só configura o servidor local, sem expor credenciais ao bundle.
 
 Nenhuma conta real é criada automaticamente. O primeiro ADM continua sendo criado
-pela desenvolvedora com `yarn admin:create-first` no backend. A interface de
-cadastro/reemissão profissional e a recuperação de senha ainda não foram migradas.
+pela desenvolvedora com `yarn admin:create-first` no backend. O ADM já pode cadastrar profissionais, listar contas e reemitir convites em
+`/workspace`. A recuperação de senha ainda não foi migrada.
 
 ## Verificar
 
@@ -61,19 +61,22 @@ yarn test:integration
 
 O teste usa o cliente real pelo proxy: ativa um profissional sintético, recusa
 segundo consumo, faz login, lê a sessão, sai e confere o bloqueio de outra origem.
-Cria fixtures temporárias e remove somente seus IDs, usernames e chaves de
+O teste também entra como ADM, cadastra/lista um profissional, reemite o convite,
+recusa o link anterior e recusa reemissão após a ativação. Cria fixtures temporárias e remove somente seus IDs, usernames e chaves de
 contador exatos, conferindo as doze tabelas vazias no final. Antes das escritas,
 gera manifesto privado `emotions-frontend-fixture-*.json` no diretório temporário
-com identidades sintéticas e digests de contadores, sem senha/token/segredo. Se
+com identidades sintéticas, usuário planejado para o cadastro e digests de
+contadores, sem senha/token/segredo. Se
 interrompido, preserve esse manifesto para recuperação pontual; não apague dados
 por nome genérico nem use limpeza total do banco. A API deve usar o mesmo segredo
 do `.env` que o teste carrega. `FRONTEND_TEST_ORIGIN` permite outra porta IPv4 local.
 
 ## Organização e navegação
 
-- `src/pages/`: Home, Login, ActivateAccount, Workspace e NotFound.
-- `src/components/`: Brand, layout de acesso e campo de senha reutilizável.
-- `src/features/auth/`: contrato da API, token de convite e política de senha.
+- `src/pages/`: páginas públicas, Workspace e composição da área Administration.
+- `src/components/`: marca, layout, senha, cadastro, diretório, convite e confirmação.
+- `src/features/auth/`: contrato da API, token, política de senha e hook de sessão.
+- `src/features/professionals/`: contratos, validação de respostas/entradas e situações.
 - `src/services/`: transporte HTTP e erros públicos seguros.
 - `src/index.css`: estilos globais e foco de teclado.
 - `test/`: testes nativos sem banco e integração opcional.
@@ -83,11 +86,12 @@ do `.env` que o teste carrega. `FRONTEND_TEST_ORIGIN` permite outra porta IPv4 l
 | `/` | Apresentação e link de entrada |
 | `/login` | Login adulto, validação e feedback |
 | `/activate-account#token=...` | Leitura do convite e escolha/confirmação da senha |
-| `/workspace` | Consulta obrigatória da sessão, identificação e saída |
+| `/workspace` | Sessão, saída e painel de profissionais exclusivo do ADM |
 | Outros caminhos | Página não encontrada com retorno ao início |
 
-A área interna é uma base de acesso; não entrega ainda cadastros visuais,
-atividades ou dados de crianças. A API continua sendo a autoridade de permissões.
+A área do ADM inclui cadastro, listagem paginada de profissionais e reemissão
+com confirmação. A área profissional continua uma base de acesso; atividades
+e dados de crianças ainda não foram migrados. A API continua sendo a autoridade de permissões.
 O título acompanha a rota e o foco vai ao conteúdo em navegações internas.
 
 ## Sessão e convite
@@ -127,3 +131,24 @@ Referências: [proxy do Vite](https://vite.dev/config/server-options.html#server
 [efeitos e limpeza no React](https://react.dev/reference/react/useEffect) e
 [BrowserRouter](https://reactrouter.com/api/declarative-routers/BrowserRouter).
 O roteiro para retirar `_old/` está em `../MIGRATION.md`.
+
+## Administração de profissionais
+
+Após login como ADM, informe nome e usuário; a conta será criada pendente e o
+convite ficará visível para entrega manual. O link é sensível: copie somente
+para o destinatário correto. Ocultar convite remove a exibição, sem revogar
+nem limpar a área de transferência. Não há envio automático ou persistência
+no navegador. Apenas o último convite permanece disponível nessa página.
+
+A listagem tem até 25 itens por página, com anterior/próxima e atualização desde
+o início. A ordenação interna é por ID, não por nome ou data de cadastro.
+Profissional pendente com perfil não arquivado tem Reemitir convite. O diálogo
+informa que o anterior deixará de funcionar, abre com foco em Cancelar e pode
+ser fechado por Escape antes da escrita. Contas ativas, suspensas ou arquivadas
+não recebem essa ação; a API também valida o estado atual na confirmação.
+
+Se o navegador perder a resposta de um cadastro, confira a lista antes de
+repetir. Se perder uma reemissão, pode ser necessário gerar outro convite;
+o anterior já pode ter sido invalidado. Nenhum POST é repetido automaticamente.
+Na conferência da sessão o painel fica oculto, preservando o convite em memória;
+falha de autorização, logout ou recarga removem o painel e o segredo exibido.

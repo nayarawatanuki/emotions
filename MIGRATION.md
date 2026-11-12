@@ -264,7 +264,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Chrome confirmou saúde e bloqueio sem sessão; pós-teste confirmou as doze
   tabelas vazias, três migrations aplicadas e nenhuma divergência de esquema.
 
-## Frontend de autenticação — implementado, em revisão
+## Frontend de autenticação — concluído (`cbaba77`)
 
 - Login adulto, ativação do convite e área protegida inicial com logout.
 - Layout acessível e responsivo preservando cores e marca; link Entrar na Home.
@@ -280,6 +280,25 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Integração deixou as doze tabelas vazias; nenhum ADM real foi criado.
 - Cadastro visual pelo ADM, recuperação, atividades e implantação seguem pendentes.
 - Instruções completas de execução e limitações em `frontend/README.md`.
+
+## Administração de profissionais — implementada, em revisão
+
+- Painel exclusivo do ADM em `/workspace`: cadastro, convite copiável, listagem
+  paginada e reemissão com diálogo nativo de confirmação e retorno de foco.
+- GET `/professionals` exclusivo do ADM, cursor UUID v4 parametrizado, 25 itens,
+  sem hash, token ou dados de sessões. Perfil/conta/situação mínimos na resposta.
+- Convite somente em memória; sem storage ou envio externo automático. Escritas
+  sem repetição automática e com tratamento de conflitos e resultado incerto.
+- Revalidação da sessão preserva componentes ocultos e descarta dados se falhar.
+- Sem nova dependência, lockfile, migration ou permissão de banco.
+- Backend: tipos/lint/build, 215 testes unitários, 10 HTTP e 97 MySQL aprovados.
+- Frontend: tipos/build/lint, 32 testes nativos e 1 integração real aprovados.
+- Chrome: cadastro, cópia, reemissão, cancelamento/Escape, foco, duplicidade,
+  estados de conta, logout e layout desktop/320 pixels; fixtures revertidas.
+- Auditorias: zero vulnerabilidades reportadas em 93 dependências do frontend
+  e 377 do backend. Nenhum ADM real foi criado.
+- Edição/suspensão pela interface, recuperação de senha, crianças e atividades
+  permanecem para etapas próprias.
 
 ## Critérios de validação
 
