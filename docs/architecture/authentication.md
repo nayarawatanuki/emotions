@@ -3,8 +3,9 @@
 Atualizado em 10 de novembro de 2026. Hash e criação local do primeiro ADM foram
 concluídos no commit `0513188`; a persistência de autenticação, no `dd7c6cf`.
 Login adulto, consulta da sessão e logout foram concluídos no commit `9690612`.
-O incremento atual implementa cadastro profissional pelo ADM, reemissão e
-ativação de acesso em 24 h na API; telas e recuperação continuam para outras etapas.
+Cadastro profissional pelo ADM, reemissão e ativação em 24 h foram concluídos
+na API no commit `39fd85e`. O incremento atual integra login, ativação e uma área
+protegida inicial no frontend; cadastro visual e recuperação continuam pendentes.
 Nenhuma conta real foi criada nos testes; nenhuma nova dependência ou migration
 foi necessária para os endpoints.
 
@@ -15,7 +16,7 @@ estados `pending`, `active` e `suspended`, username único normalizado e campo
 de hash excluído das seleções padrão. Há proteção e verificação local de senha
 e comando para o primeiro ADM. Há login adulto, sessões revogáveis, proteção
 de rotas e limites compartilhados, habilitados explicitamente por configuração.
-A ativação profissional já existe na API; recuperação e telas ainda estão pendentes. `/health`
+A ativação profissional existe na API e no frontend; recuperação e cadastro visual ainda estão pendentes. `/health`
 continua público.
 
 Implementação: credenciais locais protegidas por Argon2id e sessões opacas revogáveis

@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Brand } from '../../components/Brand/Brand'
 import './Home.css'
 
@@ -31,7 +32,7 @@ export function Home() {
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
       <header className="site-header content-width">
         <Brand />
-        <a className="text-link" href="#sobre">Sobre o Emotions <span aria-hidden="true">↗</span></a>
+        <Link className="text-link" to="/login">Entrar <span aria-hidden="true">↗</span></Link>
       </header>
       <main id="conteudo" tabIndex={-1}>
         <section className="hero content-width" aria-labelledby="welcome-title">

@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "node --test test/*.test.ts",
+    "test:integration": "node --env-file=../backend/.env --test test/auth.integration.ts",
     "preview": "vite preview"
   },
   "dependencies": {

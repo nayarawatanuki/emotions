@@ -1,6 +1,6 @@
 # Cadastro profissional e primeiro acesso
 
-Implementação de 10 de novembro de 2026, aguardando revisão e commit. O fluxo
+API concluída no commit `39fd85e`, de 10 de novembro de 2026. O fluxo
 usa as tabelas existentes; nenhuma migration, permissão ou dependência foi alterada.
 
 ## Fluxo e contrato HTTP
@@ -67,12 +67,12 @@ para o ADM. A origem é a configuração validada `AUTH_ORIGIN`, sem usar o cabe
 Host recebido. O segredo não é recuperável pelo servidor; uma nova emissão gera
 outro token. Não há envio automático por e-mail ou serviço externo.
 
-O endereço aponta para a futura página de primeiro acesso do frontend. **Essa
-página ainda não existe neste incremento.** A API já aceita o consumo em
-`POST /auth/activate`; a entrega visual do fluxo depende da etapa de telas.
-O frontend deverá remover o fragmento após lê-lo, manter o token em memória e
-não incluir recursos de terceiros nessa página. Não colocar o token em query
-string, logs, localStorage ou mensagens de erro.
+O endereço aponta para `/activate-account` no frontend. A tela implementa escolha
+e confirmação de senha, consumo na API e orientação para login após sucesso.
+O fragmento é removido antes de montar o roteador e o token fica somente em
+memória. Recarregar exige reabrir o link original completo. Não há recursos de
+terceiros nessa página nem persistência em localStorage/sessionStorage. O
+[README do frontend](../../frontend/README.md) detalha proxy, execução e validação.
 
 O prazo é exatamente 24 horas a partir do relógio UTC do MySQL. O serviço procura
 um token válido antes do cálculo caro e revalida, sob locks, finalidade, prazo,
@@ -131,7 +131,7 @@ A auditoria de 377 dependências não encontrou vulnerabilidades. No Chrome,
 testes, as doze tabelas de aplicação ficaram vazias, as três migrations
 permaneceram aplicadas e a comparação do esquema não apontou alterações.
 
-Frontend, recuperação de senha, MFA, operação de limpeza/retenção, HTTPS e proxy
+Cadastro visual pelo ADM, recuperação de senha, MFA, limpeza/retenção, HTTPS e proxy
 de produção continuam em etapas próprias. A implementação local não declara
 prontidão clínica, conformidade legal ou segurança absoluta. Tempos de atividade
 e tentativas de crianças não são alterados por esse fluxo.

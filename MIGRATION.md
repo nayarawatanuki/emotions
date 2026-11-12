@@ -242,7 +242,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Cadastro/ativação, recuperação, acesso infantil, telas e limpeza operacional
   permanecem para etapas posteriores; implantação pública ainda exige revisão.
 
-## Cadastro profissional e ativação — implementados, em revisão
+## Cadastro profissional e ativação — concluídos (`39fd85e`)
 
 - Cadastro exclusivo do ADM com conta/perfil/token na mesma transação, conta
   pendente e sem senha inicial; validação rejeita papel/estado/senha no corpo.
@@ -263,6 +263,23 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   passaram (311 no total). Auditoria: 377 dependências, zero vulnerabilidades.
 - Chrome confirmou saúde e bloqueio sem sessão; pós-teste confirmou as doze
   tabelas vazias, três migrations aplicadas e nenhuma divergência de esquema.
+
+## Frontend de autenticação — implementado, em revisão
+
+- Login adulto, ativação do convite e área protegida inicial com logout.
+- Layout acessível e responsivo preservando cores e marca; link Entrar na Home.
+- Transporte fetch de mesma origem pelo proxy nativo do Vite, sem novos pacotes.
+- Cookie HttpOnly gerenciado pela API; CSRF e convite apenas em memória, sem storage.
+- Fragmento removido antes do roteador; confirmação de senha local; sem login automático.
+- Sessão revalidada ao entrar/retornar à aba, limite local de expiração e saída confirmada.
+- Tipos/build, lint e 28 testes nativos passaram; integração pelo proxy real passou
+  para ativação, repetição de convite, login, sessão, logout e recusa de outra origem.
+- Chrome: labels, teclado, foco, mostrar senha, validação, convite sem fragmento,
+  bloqueio sem sessão, serviço indisponível e larguras de 375 e 320 pixels.
+- Auditoria frontend: 93 dependências, zero vulnerabilidades; sem alteração de lockfile.
+- Integração deixou as doze tabelas vazias; nenhum ADM real foi criado.
+- Cadastro visual pelo ADM, recuperação, atividades e implantação seguem pendentes.
+- Instruções completas de execução e limitações em `frontend/README.md`.
 
 ## Critérios de validação
 

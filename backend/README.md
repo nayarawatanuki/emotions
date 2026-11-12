@@ -328,10 +328,10 @@ senha e consumo do token também. A reemissão preserva histórico e não redefi
 senha de conta ativa. Links inválidos/usados/expirados/revogados têm erro 400
 genérico. Cadastro de username duplicado retorna 409.
 
-A URL `/activate-account#token=...` reserva a futura tela do frontend; **a tela
-não está implementada nesta etapa**. O contrato HTTP pode ser exercitado pela
-API; não há e-mail enviado ou conta real criada pelos testes. Após ativar, o
-profissional faz login normal. Recuperação de senha é uma etapa separada.
+A URL `/activate-account#token=...` abre a tela de primeiro acesso do frontend,
+que remove o fragmento antes do roteador e envia o consumo à API. Configure
+`AUTH_ORIGIN` com a origem exata do frontend. Consulte as instruções de integração
+em [frontend/README.md](../frontend/README.md).
 
 Ativação limita dez solicitações por peer TCP em 15 minutos, usando HMAC e o
 escopo existente `token_redemption`. A capacidade de dois cálculos de senha é
