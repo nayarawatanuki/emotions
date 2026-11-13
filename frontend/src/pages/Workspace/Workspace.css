@@ -1,0 +1,39 @@
+.workspace-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 24px;
+}
+.workspace-heading > div {
+  min-width: 0;
+}
+.workspace-heading > button {
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+.secondary-button {
+  min-height: 44px;
+  border: 1px solid #768b85;
+  border-radius: 10px;
+  padding: 10px 16px;
+  color: #243f42;
+  background: #fffdf8;
+  font-weight: 600;
+  cursor: pointer;
+}
+.secondary-button:hover {
+  background: #edf3ed;
+}
+.secondary-button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+@media (max-width: 800px) {
+  .workspace-heading {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .workspace-heading > button {
+    margin-block: 0 24px;
+  }
+}

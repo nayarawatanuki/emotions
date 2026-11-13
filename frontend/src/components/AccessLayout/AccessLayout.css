@@ -215,3 +215,14 @@
 .access-card output {
   display: block;
 }
+
+.access-main-wide {
+  max-width: none;
+}
+.access-main-wide {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.access-main-wide .access-intro {
+  display: none;
+}

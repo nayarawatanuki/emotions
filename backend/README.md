@@ -435,3 +435,15 @@ status e indicador de arquivamento, sem senha, digest ou convite. Cursor opciona
 parametrizada ordena pelo ID do perfil, com página de 25 e leitura de 26 linhas
 para produzir `nextCursor`. Novos cadastros durante a navegação exigem atualizar
 para reiniciar a listagem. Não há mudança de schema ou índice neste incremento.
+
+## Crianças — cadastro e consulta por profissional
+
+`POST /children`, `GET /children?after=<UUID>` e `GET /children/:id` exigem
+sessão de profissional ativo. O ADM não recebe acesso clínico. A propriedade
+vem da sessão; consultas alheias retornam 404. O cadastro cria conta infantil
+pendente e ficha na mesma transação, sem senha nem foto. A lista tem 25 resumos
+por página, sem responsável ou observações; o detalhe é restrito ao proprietário.
+Nome, usuário, nascimento, responsável, acompanhamento, nível e observações
+seguem validação estrita. Escritas exigem origem/JSON/cabeçalho customizado/CSRF.
+Confira [contrato e validação completos](../docs/architecture/child-registration.md).
+Acesso infantil, edição, arquivamento e uploads continuam para outras etapas.

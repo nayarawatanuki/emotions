@@ -1,3 +1,5 @@
+import { ProfessionalCare } from '../ProfessionalCare/ProfessionalCare'
+import './Workspace.css'
 import { useCallback, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { AccessLayout } from '../../components/AccessLayout/AccessLayout'
@@ -38,7 +40,7 @@ export function Workspace() {
   if (status === 'anonymous')
     return <Navigate to="/login" replace state={{ reason: 'session-ended' }} />
   return (
-    <AccessLayout wide={session?.user.role === 'administrator'}>
+    <AccessLayout wide={session !== null}>
       {status === 'checking' && (
         <div>
           <h1>Preparando seu espaço.</h1>
@@ -70,7 +72,7 @@ export function Workspace() {
               <p className="access-description">
                 {session.user.role === 'administrator'
                   ? 'Cuide dos acessos de quem acompanha cada descoberta.'
-                  : 'Seu acesso ao Emotions está confirmado.'}
+                  : 'Um espaço para acolher e acompanhar cada percurso.'}
               </p>
             </div>
             <button
@@ -94,13 +96,14 @@ export function Workspace() {
               onSessionRefresh={refresh}
             />
           ) : (
-            <div className="access-help">
-              <h2>Estamos preparando os próximos passos.</h2>
-              <p>
-                As ferramentas de acompanhamento e organização estarão
-                disponíveis em breve.
-              </p>
-            </div>
+            <ProfessionalCare
+              visible={status === 'ready'}
+              session={session}
+              disabled={busy}
+              onBusyChange={changeBusy}
+              onUnauthorized={end}
+              onSessionRefresh={refresh}
+            />
           )}
         </div>
       )}

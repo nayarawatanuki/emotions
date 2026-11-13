@@ -36,7 +36,10 @@ ADM, reemissão e ativação em 24 h estão implementados na API, sem nova migra
 Login/ativação e administração de profissionais estão integrados ao frontend.
 O diretório GET /professionals é exclusivo do ADM, com cursor UUID v4, 25 itens
 e projeção mínima, sem hash/token. Recuperação, acesso infantil e serviços de
-atividades continuam pendentes.
+atividades continuam pendentes. Cadastro e consulta de crianças por profissional
+estão implementados, com proprietário derivado da sessão, conta infantil pendente
+e sem senha, e sem acesso clínico pelo ADM. Lista mínima e detalhe próprio;
+edição/arquivamento, login infantil e fotos permanecem pendentes.
 Login e ativação compartilham dois cálculos de senha simultâneos; a ativação tem
 limite próprio por origem. Testes concorrentes de onboarding usam fixtures
 sintéticas confirmadas, manifesto privado sem segredos e limpeza por IDs exatos.

@@ -62,17 +62,20 @@ describe('Emotions API (e2e)', () => {
     expect(response.headers['access-control-allow-origin']).toBeUndefined();
   });
 
-  it.each(['/', '/missing?token=private', '/test-failure/not-real'])(
-    'returns a safe 404 for %s',
-    async (path) => {
-      await request(app.getHttpServer())
-        .get(path)
-        .expect(404)
-        .expect({
-          error: { code: 'NOT_FOUND', message: 'Recurso não encontrado.' },
-        });
-    },
-  );
+  it.each([
+    '/',
+    '/missing?token=private',
+    '/test-failure/not-real',
+    '/children',
+    '/children/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  ])('returns a safe 404 for %s', async (path) => {
+    await request(app.getHttpServer())
+      .get(path)
+      .expect(404)
+      .expect({
+        error: { code: 'NOT_FOUND', message: 'Recurso não encontrado.' },
+      });
+  });
 
   it('does not treat unsupported methods as successful health checks', async () => {
     await request(app.getHttpServer()).post('/health').expect(404);

@@ -281,7 +281,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Cadastro visual pelo ADM, recuperação, atividades e implantação seguem pendentes.
 - Instruções completas de execução e limitações em `frontend/README.md`.
 
-## Administração de profissionais — implementada, em revisão
+## Administração de profissionais — concluída (`c61a872`)
 
 - Painel exclusivo do ADM em `/workspace`: cadastro, convite copiável, listagem
   paginada e reemissão com diálogo nativo de confirmação e retorno de foco.
@@ -299,6 +299,27 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   e 377 do backend. Nenhum ADM real foi criado.
 - Edição/suspensão pela interface, recuperação de senha, crianças e atividades
   permanecem para etapas próprias.
+
+## Cadastro e consulta de crianças — implementados, em revisão
+
+- Profissional cadastra e consulta somente suas crianças; ADM sem acesso clínico.
+- POST/GET `/children` e GET `/children/:id`, com filtro de dono na consulta,
+  listagem mínima de 25 itens e 404 indistinguível para cadastro alheio/ausente.
+- Identidade infantil pendente, sem senha, e ficha criadas em transação única.
+- Nome, usuário, nascimento, responsável, acompanhamento, nível e observações
+  preservados como campos; foto e login infantil ainda não foram migrados.
+- Validação de datas civis reais/futuras, booleanos, Unicode, tamanho e campos
+  extras; propriedade e estado revalidados dentro da transação de escrita.
+- Formulário e consulta acessíveis no frontend; detalhes fora da listagem mínima.
+- Cursor UUID reaproveitado entre diretórios e estilos comuns no layout próprio.
+- Sem dependência, lockfile, migration, privilégio ou dado real novo.
+- Backend: tipos/lint/build, 237 testes unitários, 12 HTTP e 114 MySQL aprovados.
+- Frontend: tipos/build/lint, 37 testes nativos e 1 integração real aprovados.
+- Chrome: cadastro/consulta sintéticos, data bissexta, acompanhamento, observações,
+  foco e retorno, logout, desktop e 320 pixels. Fixtures visuais revertidas.
+- Auditorias: zero vulnerabilidades reportadas em 93 dependências do frontend
+  e 377 do backend. Doze tabelas vazias, três migrations e esquema preservados.
+- Edição, arquivamento, fotos, login infantil e atividades seguem pendentes.
 
 ## Critérios de validação
 

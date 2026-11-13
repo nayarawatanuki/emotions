@@ -493,3 +493,12 @@ preservação do histórico.
 
 - [OWASP — autorização por requisição e por recurso](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
 - [OWASP — sessões, cookies e armazenamento do token](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
+
+## Cadastro e consulta de crianças implementados
+
+A API e o frontend criam a conta `child/pending` sem senha junto da ficha,
+com proprietário derivado da sessão profissional e transação única. O ADM
+não recebe acesso clínico. Listagem mínima e consulta detalhada filtram o
+proprietário na própria consulta; nenhum novo campo ou migration foi necessário.
+Edição, arquivamento, transferência, foto e acesso infantil seguem separados.
+Veja [o contrato da etapa](child-registration.md).

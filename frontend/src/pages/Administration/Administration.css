@@ -1,24 +1,10 @@
-.access-main-wide {
-  grid-template-columns: 1fr;
-  gap: 0;
-}
-.access-main-wide .access-intro {
-  display: none;
-}
-.workspace-heading,
 .admin-section-heading {
   display: flex;
   justify-content: space-between;
   align-items: start;
   gap: 24px;
 }
-.workspace-heading > div {
-  min-width: 0;
-}
-.workspace-heading > button {
-  margin-top: 14px;
-  flex-shrink: 0;
-}
+
 .administration {
   display: grid;
   gap: 24px;
@@ -42,23 +28,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
-.secondary-button {
-  min-height: 44px;
-  border: 1px solid #768b85;
-  border-radius: 10px;
-  padding: 10px 16px;
-  color: #243f42;
-  background: #fffdf8;
-  font-weight: 600;
-  cursor: pointer;
-}
-.secondary-button:hover {
-  background: #edf3ed;
-}
-.secondary-button:disabled {
-  opacity: 0.65;
-  cursor: default;
-}
+
 .admin-primary {
   width: auto;
 }
@@ -166,9 +136,6 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 800px) {
-  .access-main-wide {
-    max-width: none;
-  }
   .admin-fields {
     grid-template-columns: 1fr;
     gap: 0;
@@ -176,14 +143,10 @@
   .admin-panel {
     padding: 20px;
   }
-  .workspace-heading,
   .admin-section-heading,
   .professional-list li {
     flex-direction: column;
     gap: 12px;
-  }
-  .workspace-heading > button {
-    margin-block: 0 24px;
   }
 }
 @media (max-width: 380px) {

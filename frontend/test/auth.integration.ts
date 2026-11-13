@@ -1,3 +1,9 @@
+import { ChildEntity } from '../../backend/dist/modules/children/entities/child.entity.js'
+import {
+  createChild,
+  loadChildren,
+  loadChild
+} from '../src/features/children/children-api.ts'
 import {
   createProfessional,
   loadProfessionals,
@@ -55,6 +61,7 @@ test('frontend client completes activation, login, session and logout through re
     profileId = randomUUID(),
     tokenId = randomUUID()
   const username = 'fixture_frontend_' + accountId
+  const childUsername = 'fixture_frontend_child_' + accountId
   const newUsername = 'fixture_frontend_new_' + accountId
   let createdIdentity: { id: string; accountId: string } | null = null
   const adminUsername = 'fixture_frontend_' + adminId
@@ -124,6 +131,7 @@ test('frontend client completes activation, login, session and logout through re
         username,
         adminUsername,
         newUsername,
+        childUsername,
         counterKeys
       }),
       { mode: 0o600, flag: 'wx' }
@@ -162,7 +170,10 @@ test('frontend client completes activation, login, session and logout through re
       })
     })
     globalThis.fetch = async (path, options) => {
-      assert.match(String(path), /^\/api\/(auth|professionals)(\/|\?|$)/)
+      assert.match(
+        String(path),
+        /^\/api\/(auth|professionals|children)(\/|\?|$)/
+      )
       const headers = new Headers(options?.headers)
       if (options?.method === 'POST') headers.set('Origin', origin)
       if (cookie) headers.set('Cookie', cookie)
@@ -171,11 +182,18 @@ test('frontend client completes activation, login, session and logout through re
         headers
       })
       const issued = response.headers.getSetCookie()
-      if (issued.length) cookie = issued[0].split(';')[0]
+      if (issued.length) {
+        const assigned = issued[0].split(';')[0]
+        cookie = assigned.endsWith('=') ? '' : assigned
+      }
       return response
     }
     await login(adminUsername, password)
     const administrator = await loadSession(new AbortController().signal)
+    await assert.rejects(
+      loadChildren(null, new AbortController().signal),
+      (failure) => failure instanceof ApiError && failure.status === 403
+    )
     const initial = await loadProfessionals(null, new AbortController().signal)
     assert.equal(initial.items.length, 1)
     assert.equal(initial.items[0].id, profileId)
@@ -206,7 +224,11 @@ test('frontend client completes activation, login, session and logout through re
       (failure) => failure instanceof ApiError && failure.status === 409
     )
     await logout(administrator.csrfToken)
-    cookie = ''
+    assert.equal(
+      cookie,
+      '',
+      'Logout removes the cookie from the simulated browser jar'
+    )
     await activateAccount(token, password)
     assert.equal(cookie, '', 'Activation does not log in automatically')
     await assert.rejects(
@@ -218,11 +240,39 @@ test('frontend client completes activation, login, session and logout through re
     const session = await loadSession(new AbortController().signal)
     assert.equal(session.user.id, accountId)
     assert.equal(session.user.role, 'professional')
+    const child = await createChild(
+      {
+        name: 'Synthetic child through client',
+        username: childUsername,
+        dateOfBirth: '2020-02-29',
+        guardianName: 'Synthetic guardian',
+        treatmentActive: true,
+        reportedLevel: null,
+        notes: 'Synthetic clinical notes'
+      },
+      session.csrfToken
+    )
+    const children = await loadChildren(null, new AbortController().signal)
+    assert.equal(children.items.length, 1)
+    assert.equal(children.items[0].id, child.id)
+    assert.equal('notes' in children.items[0], false)
+    assert.deepEqual(await loadChild(child.id), child)
     await logout(session.csrfToken)
     await assert.rejects(
       loadSession(new AbortController().signal),
       (failure) => failure instanceof ApiError && failure.status === 401
     )
+    await login(newUsername, password)
+    const otherSession = await loadSession(new AbortController().signal)
+    assert.deepEqual(
+      (await loadChildren(null, new AbortController().signal)).items,
+      []
+    )
+    await assert.rejects(
+      loadChild(child.id),
+      (failure) => failure instanceof ApiError && failure.status === 404
+    )
+    await logout(otherSession.csrfToken)
     const blocked = await originalFetch(origin + '/api/auth/login', {
       method: 'POST',
       headers: {
@@ -265,6 +315,17 @@ test('frontend client completes activation, login, session and logout through re
               .delete({ id: extra.id, username: newUsername })
           }
           await manager.getRepository(AuthSessionEntity).delete({ accountId })
+          const childAccount = await manager
+            .getRepository(AccountEntity)
+            .findOneBy({ username: childUsername })
+          if (childAccount) {
+            await manager
+              .getRepository(ChildEntity)
+              .delete({ accountId: childAccount.id, professionalId: profileId })
+            await manager
+              .getRepository(AccountEntity)
+              .delete({ id: childAccount.id, username: childUsername })
+          }
           await manager
             .getRepository(ProfessionalEntity)
             .delete({ id: profileId, accountId })

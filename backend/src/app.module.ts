@@ -1,3 +1,4 @@
+import { ChildrenModule } from './modules/children/children.module.js';
 import { ProfessionalsModule } from './modules/professionals/professionals.module.js';
 import { readAuthEnvironment } from './config/auth-environment.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -20,7 +21,11 @@ export class AppModule {
       imports: [
         ...(database ? [DatabaseModule.register(database)] : []),
         ...(authentication
-          ? [authentication, ProfessionalsModule.register(authentication)]
+          ? [
+              authentication,
+              ProfessionalsModule.register(authentication),
+              ChildrenModule,
+            ]
           : []),
       ],
     };

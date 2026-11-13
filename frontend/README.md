@@ -73,7 +73,7 @@ do `.env` que o teste carrega. `FRONTEND_TEST_ORIGIN` permite outra porta IPv4 l
 
 ## Organização e navegação
 
-- `src/pages/`: páginas públicas, Workspace e composição da área Administration.
+- `src/pages/`: páginas públicas, Workspace e composição das áreas Administration/ProfessionalCare.
 - `src/components/`: marca, layout, senha, cadastro, diretório, convite e confirmação.
 - `src/features/auth/`: contrato da API, token, política de senha e hook de sessão.
 - `src/features/professionals/`: contratos, validação de respostas/entradas e situações.
@@ -90,8 +90,8 @@ do `.env` que o teste carrega. `FRONTEND_TEST_ORIGIN` permite outra porta IPv4 l
 | Outros caminhos | Página não encontrada com retorno ao início |
 
 A área do ADM inclui cadastro, listagem paginada de profissionais e reemissão
-com confirmação. A área profissional continua uma base de acesso; atividades
-e dados de crianças ainda não foram migrados. A API continua sendo a autoridade de permissões.
+com confirmação. A área profissional oferece cadastro, lista paginada e consulta das próprias
+crianças; edição, fotos, acesso infantil e atividades continuam pendentes. A API continua sendo a autoridade de permissões.
 O título acompanha a rota e o foco vai ao conteúdo em navegações internas.
 
 ## Sessão e convite
@@ -152,3 +152,23 @@ repetir. Se perder uma reemissão, pode ser necessário gerar outro convite;
 o anterior já pode ter sido invalidado. Nenhum POST é repetido automaticamente.
 Na conferência da sessão o painel fica oculto, preservando o convite em memória;
 falha de autorização, logout ou recarga removem o painel e o segredo exibido.
+
+## Crianças na área profissional
+
+O profissional autenticado vê Cadastrar criança e Suas crianças em `/workspace`.
+Informe nome, usuário reservado, nascimento, responsável e acompanhamento ativo;
+nível informado e observações são opcionais. Não há definição de senha nesta
+etapa: a conta infantil fica pendente. O vínculo com o profissional é automático.
+
+A lista tem 25 resumos por página. Ver cadastro consulta a ficha própria, com
+responsável e observações; Fechar informações retorna o foco à lista. O ADM não
+vê essas telas e também não pode consultar os endpoints clínicos. Os dados ficam
+somente em memória, sem storage ou envio externo. Datas civis preservam o dia.
+
+A integração opcional também cadastra uma criança sintética, consulta seu detalhe,
+confere a projeção mínima da lista e entra como outro profissional para comprovar
+lista vazia/404. O manifesto inclui o usuário infantil planejado; a limpeza remove
+somente as identidades e o vínculo dessa fixture. A simulação de cookies remove
+o cookie quando o backend o expira no logout.
+
+[Contrato e limites do cadastro infantil](../docs/architecture/child-registration.md).
