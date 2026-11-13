@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { ApiError } from '../src/services/api.ts'
 import {
   createChild,
+  updateChild,
   loadChild,
   loadChildren,
   parseChild,
@@ -21,7 +22,12 @@ const input = {
   reportedLevel: null,
   notes: 'Line one\nLine two'
 }
-const view = { ...input, id: randomUUID(), archived: false }
+const view = {
+  ...input,
+  id: randomUUID(),
+  archived: false,
+  revision: 'a'.repeat(64)
+}
 test('civil dates preserve the day independently of device timezone', () => {
   assert.equal(isCivilDate('2020-02-29'), true)
   assert.equal(isCivilDate('2000-02-29'), true)
@@ -122,6 +128,32 @@ test('directory rejects duplicate/unbounded pages and inconsistent cursors', asy
         ApiError
       )
     }
+  } finally {
+    globalThis.fetch = original
+  }
+})
+
+test('update preserves revision, uses PATCH/CSRF, and rejects missing version before HTTP', async () => {
+  const original = globalThis.fetch
+  let calls = 0
+  globalThis.fetch = async (path, options) => {
+    calls++
+    assert.equal(String(path), '/api/children/' + view.id)
+    assert.equal(options?.method, 'PATCH')
+    assert.equal(
+      (options!.headers as Record<string, string>)['X-CSRF-Token'],
+      'fixture-csrf'
+    )
+    assert.deepEqual(JSON.parse(String(options?.body)), {
+      ...input,
+      revision: view.revision
+    })
+    return Response.json(view)
+  }
+  try {
+    await updateChild(view.id, input, view.revision, 'fixture-csrf')
+    await assert.rejects(updateChild(view.id, input, 'bad', 'csrf'), ApiError)
+    assert.equal(calls, 1)
   } finally {
     globalThis.fetch = original
   }

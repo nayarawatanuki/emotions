@@ -1,6 +1,7 @@
 import { ChildEntity } from '../../backend/dist/modules/children/entities/child.entity.js'
 import {
   createChild,
+  updateChild,
   loadChildren,
   loadChild
 } from '../src/features/children/children-api.ts'
@@ -175,7 +176,8 @@ test('frontend client completes activation, login, session and logout through re
         /^\/api\/(auth|professionals|children)(\/|\?|$)/
       )
       const headers = new Headers(options?.headers)
-      if (options?.method === 'POST') headers.set('Origin', origin)
+      if (options?.method === 'POST' || options?.method === 'PATCH')
+        headers.set('Origin', origin)
       if (cookie) headers.set('Cookie', cookie)
       const response = await originalFetch(new URL(String(path), origin), {
         ...options,
@@ -257,6 +259,51 @@ test('frontend client completes activation, login, session and logout through re
     assert.equal(children.items[0].id, child.id)
     assert.equal('notes' in children.items[0], false)
     assert.deepEqual(await loadChild(child.id), child)
+    const editInput = {
+      name: child.name,
+      username: child.username,
+      dateOfBirth: child.dateOfBirth,
+      guardianName: child.guardianName,
+      treatmentActive: false,
+      reportedLevel: child.reportedLevel,
+      notes: 'Updated synthetic notes'
+    }
+    const edited = await updateChild(
+      child.id,
+      editInput,
+      child.revision,
+      session.csrfToken
+    )
+    assert.equal(edited.notes, editInput.notes)
+    assert.notEqual(edited.revision, child.revision)
+    await assert.rejects(
+      updateChild(child.id, editInput, child.revision, session.csrfToken),
+      (failure) => failure instanceof ApiError && failure.status === 409
+    )
+    const writes = await Promise.allSettled([
+      updateChild(
+        child.id,
+        { ...editInput, notes: 'Concurrent synthetic first' },
+        edited.revision,
+        session.csrfToken
+      ),
+      updateChild(
+        child.id,
+        { ...editInput, notes: 'Concurrent synthetic second' },
+        edited.revision,
+        session.csrfToken
+      )
+    ])
+    assert.equal(
+      writes.filter((result) => result.status === 'fulfilled').length,
+      1
+    )
+    const rejected = writes.find((result) => result.status === 'rejected')
+    assert.ok(
+      rejected?.status === 'rejected' &&
+        rejected.reason instanceof ApiError &&
+        rejected.reason.status === 409
+    )
     await logout(session.csrfToken)
     await assert.rejects(
       loadSession(new AbortController().signal),

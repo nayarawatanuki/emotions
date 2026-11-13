@@ -1,3 +1,4 @@
+import { parseUpdateChildInput } from '../dto/update-child-input.js';
 import {
   Body,
   Controller,
@@ -6,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Patch,
   Query,
   Req,
   UnauthorizedException,
@@ -46,5 +48,16 @@ export class ChildrenController {
     @Body() body: unknown,
   ): Promise<ChildView> {
     return this.children.create(context(request), parseCreateChildInput(body));
+  }
+  @Patch(':id') update(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ): Promise<ChildView> {
+    return this.children.update(
+      context(request),
+      id,
+      parseUpdateChildInput(body),
+    );
   }
 }

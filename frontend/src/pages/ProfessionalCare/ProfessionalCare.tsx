@@ -3,6 +3,7 @@ import type { AdultSession } from '../../features/auth/auth-api'
 import { ApiError, requestError } from '../../services/api'
 import {
   createChild,
+  updateChild,
   loadChild,
   type ChildView,
   type CreateChildInput
@@ -26,6 +27,7 @@ export function ProfessionalCare({
   onUnauthorized: () => void
   onSessionRefresh: () => void
 }) {
+  const [editing, setEditing] = useState<ChildView | null>(null)
   const [detail, setDetail] = useState<ChildView | null>(null)
   const [revision, setRevision] = useState(0)
   const [error, setError] = useState('')
@@ -54,6 +56,25 @@ export function ProfessionalCare({
     setError('')
     onSessionRefresh()
   }
+  async function save(input: CreateChildInput) {
+    if (!editing) return
+    const child = await perform(() =>
+      updateChild(editing.id, input, editing.revision, session.csrfToken)
+    )
+    setDetail(child)
+    setEditing(null)
+    setRevision((value) => value + 1)
+    setError('')
+    onSessionRefresh()
+  }
+  async function reloadEditing() {
+    if (!editing) return
+    const child = await perform(() => loadChild(editing.id))
+    setDetail(child)
+    setEditing(null)
+    setError('')
+    onSessionRefresh()
+  }
   async function select(id: string) {
     setDetail(null)
     setError('')
@@ -74,17 +95,31 @@ export function ProfessionalCare({
   }
   return (
     <div className="professional-care">
-      <ChildForm disabled={disabled} onSubmit={create} />
+      <ChildForm
+        key={editing ? editing.id + editing.revision : 'new'}
+        initial={editing ?? undefined}
+        disabled={disabled}
+        onSubmit={editing ? save : create}
+        onCancel={() => setEditing(null)}
+        onReload={reloadEditing}
+      />
       <p className="form-feedback" role="alert" ref={feedback} tabIndex={-1}>
         {error}
       </p>
       {reading && (
         <output className="care-status">Consultando cadastro…</output>
       )}
-      {detail && (
+      {detail && !editing && (
         <ChildDetails
           key={detail.id}
           child={detail}
+          disabled={disabled}
+          onEdit={() => {
+            setEditing(detail)
+            requestAnimationFrame(() =>
+              document.getElementById('child-form-title')?.focus()
+            )
+          }}
           visible={visible}
           onClose={() => {
             setDetail(null)
@@ -96,7 +131,7 @@ export function ProfessionalCare({
       )}
       <ChildDirectory
         revision={revision}
-        busy={disabled}
+        busy={disabled || editing !== null}
         visible={visible}
         onSelect={select}
         onRead={onSessionRefresh}

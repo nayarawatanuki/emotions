@@ -1,6 +1,7 @@
 # Cadastro e consulta de crianças
 
-Incremento de 12 de novembro de 2026, aguardando revisão e commit. Usa as
+Cadastro e consulta concluídos no commit `43f996b`. Edição implementada em
+13 de novembro de 2026, aguardando revisão e commit. Usa as
 entidades existentes `accounts`, `professionals` e `children`, sem migration,
 dependência, importação de dados antigos ou alteração de privilégios.
 
@@ -16,7 +17,7 @@ O vínculo é obrigatório: um profissional acompanha várias crianças e cada
 criança pertence a um único profissional. O ADM gerencia contas profissionais,
 mas não recebe acesso clínico. O usuário identifica a futura conta infantil;
 esta etapa não cria código de acesso, senha, convite ou sessão infantil.
-Foto, edição, transferência, arquivamento e acesso infantil continuam separados.
+Foto, transferência, arquivamento e acesso infantil continuam separados.
 Nenhum endpoint de exclusão foi acrescentado.
 
 ## Contrato HTTP
@@ -25,6 +26,7 @@ Nenhum endpoint de exclusão foi acrescentado.
 | --- | --- | --- |
 | `POST /children` | Profissional ativo | 201: ficha criada com identidade infantil pendente |
 | `GET /children?after=<UUID>` | Profissional ativo | 200: até 25 resumos próprios e `nextCursor` |
+| `PATCH /children/:id` | Profissional ativo e proprietário | 200: ficha atualizada, com nova revisão; 409 se houve conflito |
 | `GET /children/:id` | Profissional ativo e proprietário | 200: ficha própria; 404 se ausente ou de outro profissional |
 
 Autenticação deve estar habilitada. Sem ela, os módulos privados não são
@@ -79,11 +81,50 @@ inválido ou acompanhado por campos extras é recusado. Não há busca, ordenaç
 por nome ou contagem total. Cadastros durante uma navegação podem ficar antes
 do cursor; Atualizar lista reinicia o percurso.
 
+## Edição e proteção contra sobrescrita
+
+O detalhe e a resposta do cadastro incluem `revision`, uma impressão SHA-256
+calculada com os dados da ficha, ID e timestamps existentes de criança/conta,
+lidos com a precisão de microssegundos do MySQL. Não é senha, token de acesso,
+contador persistido ou trilha de auditoria. Não foi criada coluna ou migration.
+A autorização continua independente dessa revisão. O diretório mínimo não a inclui.
+
+`PATCH /children/:id` exige os sete campos do cadastro e a `revision` recebida,
+com exatamente 64 caracteres hexadecimais minúsculos. A interpretação do PATCH
+é atualizar esse conjunto editável; proprietário, arquivamento, foto, papel,
+estado e senha não podem ser enviados. O usuário pode ser alterado, respeitando
+a unicidade global. O papel e o estado pendente da conta infantil permanecem.
+
+Primeiro é resolvida somente a identidade técnica de um registro próprio.
+Na transação, todas as contas envolvidas são travadas em ordem de UUID, depois
+perfil, sessão e criança. Papel/estado/prazos, vínculo atual e arquivamento são
+revalidados. A revisão atual é calculada após os locks, com o mesmo manager da
+transação. Uma revisão diferente retorna 409 sem gravar. A atualização de nome/
+usuário e dos campos de acompanhamento é atômica; falha na segunda escrita
+reverte a primeira. Contas ou fichas de outro profissional não podem ser editadas.
+
+A tela reaproveita o formulário, preenchendo os dados atuais e mantendo o
+rascunho em memória. Salvar mostra a ficha retornada; Cancelar edição descarta
+o rascunho sem gravar. Conflito ou falha de rede mantém o texto digitado. Como
+409 também pode representar usuário duplicado ou ficha arquivada, a mensagem
+não afirma uma causa única nem sobrescreve dados automaticamente.
+
+Após erro, a ação explícita **Descartar rascunho e consultar ficha atual** busca
+a ficha antes de substituir a exibição. Se a consulta falhar, o rascunho continua
+preservado; falha de autorização continua removendo a área protegida. Não há
+repetição automática de PATCH. A consulta explícita é a forma de obter a versão
+atual após um conflito; cancelar sozinho volta à informação antes carregada.
+Sair ou recarregar a página descarta rascunhos, sem persistência no navegador.
+
+Este incremento altera o estado atual da ficha. Não guarda cópias anteriores
+para restauração ou auditoria clínica; isso exige desenho e aprovação próprios.
+Atividades, tentativas, recompensas e resultados não são alterados pela edição.
+
 ## Retorno mínimo e interface
 
 A lista retorna somente `id`, `name`, `username`, `dateOfBirth`,
 `treatmentActive` e `archived`. Responsável, nível e observações só são retornados
-no detalhe próprio ou na resposta do cadastro. Hash, ID da conta, proprietário,
+no detalhe próprio ou nas respostas de cadastro/edição. Hash, ID da conta, proprietário,
 referência de arquivo e dados de sessão não integram o DTO clínico.
 
 Em `/workspace`, o profissional vê cadastro, lista e consulta. O ADM continua
@@ -107,9 +148,9 @@ implicitamente do CSS administrativo. O visual anterior permanece preservado.
 
 ## Validação
 
-- Backend: tipos, lint e build; 237 testes unitários, 12 HTTP e 114 com MySQL.
-- Frontend: tipos/build e lint; 37 testes nativos e 1 integração pelo proxy real.
-- Total: 401 testes aprovados.
+- Backend: tipos, lint e build; 246 testes unitários, 12 HTTP e 124 com MySQL.
+- Frontend: tipos/build e lint; 38 testes nativos e 1 integração pelo proxy real.
+- Total: 421 testes aprovados.
 - Testes específicos cobrem vínculo pela sessão, entrada forjada, data inválida
   ou futura, unicidade, criação sem senha, rollback e mudança de estado entre
   guard e escrita (suspensão, perfil arquivado ou sessão revogada).
@@ -118,7 +159,13 @@ implicitamente do CSS administrativo. O visual anterior permanece preservado.
 - A integração real usa dois profissionais: um cadastra/consulta; o outro recebe
   lista vazia e 404; o ADM recebe 403. A simulação de cookies remove o cookie de
   sessão ao receber a expiração no logout, como o navegador.
-- Chrome: formulário vazio, preenchimento sintético, nascimento em ano bissexto,
+- Edição: recusa revisão antiga, campos privilegiados e alterações alheias;
+  testa atomicidade, unicidade e mudanças de acesso após o guard. A integração
+  real disputa duas gravações com a mesma revisão: uma salva e a outra recebe 409.
+- Chrome da edição: formulário preenchido, cancelamento, salvamento, conflito
+  provocado por outra solicitação, texto mantido e consulta explícita da versão
+  atual, foco, logout e 320 pixels.
+- Chrome do cadastro (`43f996b`): formulário vazio, preenchimento sintético, nascimento em ano bissexto,
   acompanhamento, observações, cadastro, consulta pela lista, foco e retorno,
   logout, desktop e largura de 320 pixels.
 - Auditorias atuais sem vulnerabilidades reportadas: 93 dependências no
@@ -131,10 +178,12 @@ implicitamente do CSS administrativo. O visual anterior permanece preservado.
 ## Limites
 
 A conta infantil permanece pendente e não pode usar o login adulto. O cadastro
-não libera atividades nem entrega credenciais. Edição, transferência, foto,
+não libera atividades nem entrega credenciais. Histórico de alterações, transferência, foto,
 arquivamento, autenticação infantil e atividades precisam de etapas próprias.
 Não foi feita auditoria completa com leitor de tela nem validação de produção,
 retenção clínica ou conformidade legal. `_old/` continua necessário como referência.
 
 Referências técnicas: [input de data nativo](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/date)
 e [transações do TypeORM](https://typeorm.io/docs/advanced-topics/transactions/).
+
+Referência da edição: [método PATCH](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PATCH).

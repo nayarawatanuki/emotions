@@ -7,6 +7,7 @@ export interface ChildSummary {
   archived: boolean;
 }
 export interface ChildView extends ChildSummary {
+  revision: string;
   guardianName: string;
   reportedLevel: string | null;
   notes: string | null;

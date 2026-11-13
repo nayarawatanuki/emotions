@@ -12,6 +12,7 @@ export class ApiError extends Error {
 export async function apiRequest(
   path: string,
   options: {
+    method?: 'POST' | 'PATCH'
     body?: unknown
     csrfToken?: string
     signal?: AbortSignal
@@ -25,7 +26,7 @@ export async function apiRequest(
   if (options.csrfToken) headers['X-CSRF-Token'] = options.csrfToken
   const timeout = AbortSignal.timeout(20_000)
   const response = await fetch(`/api${path}`, {
-    method: options.body === undefined ? 'GET' : 'POST',
+    method: options.method ?? (options.body === undefined ? 'GET' : 'POST'),
     credentials: 'same-origin',
     cache: 'no-store',
     redirect: 'error',

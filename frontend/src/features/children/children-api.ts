@@ -8,6 +8,7 @@ export interface ChildSummary {
   archived: boolean
 }
 export interface ChildView extends ChildSummary {
+  revision: string
   guardianName: string
   reportedLevel: string | null
   notes: string | null
@@ -62,6 +63,8 @@ export function parseChild(value: unknown): ChildView {
   const identity = parseChildSummary(value)
   if (
     !record(value) ||
+    typeof value.revision !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.revision) ||
     typeof value.guardianName !== 'string' ||
     !(
       value.reportedLevel === null || typeof value.reportedLevel === 'string'
@@ -71,6 +74,7 @@ export function parseChild(value: unknown): ChildView {
     throw new ApiError(502)
   return {
     ...identity,
+    revision: value.revision,
     guardianName: value.guardianName,
     reportedLevel: value.reportedLevel,
     notes: value.notes
@@ -117,5 +121,22 @@ export async function createChild(
 export function formatCivilDate(value: string): string {
   return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(
     new Date(value + 'T00:00:00Z')
+  )
+}
+
+export async function updateChild(
+  id: string,
+  input: CreateChildInput,
+  revision: string,
+  csrfToken: string
+): Promise<ChildView> {
+  if (!uuid.test(id) || !/^[a-f0-9]{64}$/.test(revision))
+    throw new ApiError(400)
+  return parseChild(
+    await apiRequest('/children/' + id, {
+      method: 'PATCH',
+      body: { ...input, revision },
+      csrfToken
+    })
   )
 }

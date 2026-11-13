@@ -6,8 +6,12 @@ import {
 export function ChildDetails({
   child,
   visible,
-  onClose
+  onClose,
+  onEdit,
+  disabled = false
 }: {
+  disabled?: boolean
+  onEdit?: () => void
   child: ChildView
   visible: boolean
   onClose: () => void
@@ -62,9 +66,24 @@ export function ChildDetails({
           </dd>
         </div>
       </dl>
-      <button className="secondary-button" onClick={onClose}>
-        Fechar informações
-      </button>
+      <div className="care-detail-actions">
+        {!child.archived && onEdit && (
+          <button
+            className="access-button care-primary"
+            disabled={disabled}
+            onClick={onEdit}
+          >
+            Editar cadastro
+          </button>
+        )}
+        <button
+          className="secondary-button"
+          disabled={disabled}
+          onClick={onClose}
+        >
+          Fechar informações
+        </button>
+      </div>
     </section>
   )
 }

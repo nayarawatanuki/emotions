@@ -169,18 +169,16 @@ describe('child records isolated by professional on real MySQL with rollback', (
       [secondAccount, tokens.second, randomUUID()],
       [adminAccount, tokens.admin, randomUUID()],
     ] as [string, string, string][])
-      await runner.manager
-        .getRepository(AuthSessionEntity)
-        .insert({
-          id,
-          accountId,
-          sessionDigest: sessionDigest(token),
-          createdAt: now,
-          updatedAt: now,
-          lastSeenAt: now,
-          idleExpiresAt: new Date(now.getTime() + 30 * 60_000),
-          expiresAt: new Date(now.getTime() + 8 * 60 * 60_000),
-        });
+      await runner.manager.getRepository(AuthSessionEntity).insert({
+        id,
+        accountId,
+        sessionDigest: sessionDigest(token),
+        createdAt: now,
+        updatedAt: now,
+        lastSeenAt: now,
+        idleExpiresAt: new Date(now.getTime() + 30 * 60_000),
+        expiresAt: new Date(now.getTime() + 8 * 60 * 60_000),
+      });
   });
   afterEach(async () => {
     vi.restoreAllMocks();
@@ -227,6 +225,7 @@ describe('child records isolated by professional on real MySQL with rollback', (
       username: 'fixture-child',
       guardianName: 'Synthetic guardian',
       archived: false,
+      revision: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     const row = await runner.manager
       .getRepository(ChildEntity)
@@ -436,6 +435,185 @@ describe('child records isolated by professional on real MySQL with rollback', (
       ),
     ).toBe(false);
   });
+
+  function patch(id: string, body: object, token = tokens.first) {
+    return request(app.getHttpServer())
+      .patch('/children/' + id)
+      .set('Cookie', `emotions_session_local=${token}`)
+      .set('Origin', origin)
+      .set('X-Emotions-Request', '1')
+      .set('X-CSRF-Token', csrfToken(secret, token))
+      .send(body);
+  }
+  function editBody(child: ChildView) {
+    return {
+      ...input,
+      name: child.name,
+      username: child.username,
+      revision: child.revision,
+    };
+  }
+  it('updates the owned identity and clinical fields atomically with a fresh revision', async () => {
+    const child = await create();
+    const body = {
+      ...editBody(child),
+      name: 'Updated synthetic name',
+      username: 'fixture-updated-child',
+      guardianName: 'Updated guardian',
+      notes: 'Updated notes',
+      treatmentActive: false,
+    };
+    const response = await patch(child.id, body).expect(200);
+    const updated = response.body as ChildView;
+    expect(updated).toMatchObject({
+      name: body.name,
+      username: body.username,
+      guardianName: body.guardianName,
+      notes: body.notes,
+      treatmentActive: false,
+    });
+    expect(updated.revision).not.toBe(child.revision);
+    await get('/children/' + child.id)
+      .expect(200)
+      .expect(updated);
+    const row = await runner.manager
+      .getRepository(ChildEntity)
+      .findOneByOrFail({ id: child.id });
+    expect(row.professionalId).toBe(firstProfile);
+    const account = await runner.manager
+      .getRepository(AccountEntity)
+      .findOneByOrFail({ id: row.accountId });
+    expect(account).toMatchObject({ role: 'child', status: 'pending' });
+  });
+  it('refuses a stale edit without overwriting the first saved changes', async () => {
+    const child = await create();
+    const body = editBody(child);
+    await patch(child.id, { ...body, notes: 'First saved revision' }).expect(
+      200,
+    );
+    await patch(child.id, { ...body, notes: 'Stale second writer' }).expect(
+      409,
+    );
+    expect((await get('/children/' + child.id)).body.notes).toBe(
+      'First saved revision',
+    );
+  });
+  it('does not allow update by another professional, administrator or visitor', async () => {
+    const child = await create();
+    const body = editBody(child);
+    const foreign = await patch(child.id, body, tokens.second).expect(404);
+    const absent = await patch(randomUUID(), body, tokens.second).expect(404);
+    expect(foreign.body).toEqual(absent.body);
+    await patch(child.id, body, tokens.admin).expect(403);
+    await request(app.getHttpServer())
+      .patch('/children/' + child.id)
+      .set('Origin', origin)
+      .set('X-Emotions-Request', '1')
+      .send(body)
+      .expect(401);
+  });
+  it('requires CSRF and origin on PATCH, not just on registration', async () => {
+    const child = await create();
+    const body = editBody(child);
+    await request(app.getHttpServer())
+      .patch('/children/' + child.id)
+      .set('Cookie', `emotions_session_local=${tokens.first}`)
+      .set('Origin', origin)
+      .set('X-Emotions-Request', '1')
+      .send(body)
+      .expect(403);
+    await request(app.getHttpServer())
+      .patch('/children/' + child.id)
+      .set('Cookie', `emotions_session_local=${tokens.first}`)
+      .set('Origin', 'https://untrusted.example')
+      .set('X-Emotions-Request', '1')
+      .set('X-CSRF-Token', csrfToken(secret, tokens.first))
+      .send(body)
+      .expect(403);
+  });
+  it('rejects archive, credential or ownership changes and future dates', async () => {
+    const child = await create();
+    for (const field of [
+      'professionalId',
+      'password',
+      'status',
+      'archivedAt',
+      'photoFileId',
+    ])
+      await patch(child.id, { ...editBody(child), [field]: 'forged' }).expect(
+        400,
+      );
+    await patch(child.id, {
+      ...editBody(child),
+      dateOfBirth: '9999-12-31',
+    }).expect(400);
+  });
+  it('keeps both identity and child unchanged if the second update fails', async () => {
+    const child = await create();
+    vi.spyOn(
+      runner.manager.getRepository(ChildEntity),
+      'update',
+    ).mockRejectedValueOnce(Error('synthetic update failure'));
+    await patch(child.id, {
+      ...editBody(child),
+      name: 'Must roll back',
+      notes: 'Must roll back',
+    }).expect(500);
+    await get('/children/' + child.id)
+      .expect(200)
+      .expect(child);
+  });
+  it('rejects username collision and archived children without changing records', async () => {
+    const child = await create();
+    await patch(child.id, {
+      ...editBody(child),
+      username: 'fixture-child-admin',
+    }).expect(409);
+    await runner.manager
+      .getRepository(ChildEntity)
+      .update(child.id, { archivedAt: await databaseNow(runner.manager) });
+    await patch(child.id, editBody(child)).expect(409);
+  });
+  it.each(['suspended', 'archived', 'revoked'])(
+    'revalidates %s state after the update guard',
+    async (change) => {
+      const child = await create();
+      const service = app.get(ChildrenService);
+      const original = service.update.bind(service);
+      vi.spyOn(service, 'update').mockImplementationOnce(
+        async (context, id, body) => {
+          if (change === 'suspended')
+            await runner.manager
+              .getRepository(AccountEntity)
+              .update(firstAccount, { status: 'suspended' });
+          else if (change === 'archived')
+            await runner.manager
+              .getRepository(ProfessionalEntity)
+              .update(firstProfile, {
+                archivedAt: await databaseNow(runner.manager),
+              });
+          else
+            await runner.manager
+              .getRepository(AuthSessionEntity)
+              .update(firstSession, {
+                revokedAt: await databaseNow(runner.manager),
+              });
+          return original(context, id, body);
+        },
+      );
+      await patch(child.id, {
+        ...editBody(child),
+        notes: 'Must not save',
+      }).expect(change === 'archived' ? 404 : 401);
+      expect(
+        (
+          await runner.manager
+            .getRepository(ChildEntity)
+            .findOneByOrFail({ id: child.id })
+        ).notes,
+      ).toBe(input.notes);
+    },
+  );
   it('rejects malformed UUIDs and query attempts to select another professional', async () => {
     for (const path of [
       '/children?professionalId=' + secondProfile,

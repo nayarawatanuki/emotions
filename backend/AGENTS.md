@@ -39,7 +39,9 @@ e projeção mínima, sem hash/token. Recuperação, acesso infantil e serviços
 atividades continuam pendentes. Cadastro e consulta de crianças por profissional
 estão implementados, com proprietário derivado da sessão, conta infantil pendente
 e sem senha, e sem acesso clínico pelo ADM. Lista mínima e detalhe próprio;
-edição/arquivamento, login infantil e fotos permanecem pendentes.
+Edição própria está implementada por PATCH com revisão derivada, locks e
+rollback; arquivamento, histórico de alterações, login infantil e fotos seguem
+pendentes. Não interpretar revision como autorização ou trilha de auditoria.
 Login e ativação compartilham dois cálculos de senha simultâneos; a ativação tem
 limite próprio por origem. Testes concorrentes de onboarding usam fixtures
 sintéticas confirmadas, manifesto privado sem segredos e limpeza por IDs exatos.

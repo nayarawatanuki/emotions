@@ -446,4 +446,13 @@ por página, sem responsável ou observações; o detalhe é restrito ao proprie
 Nome, usuário, nascimento, responsável, acompanhamento, nível e observações
 seguem validação estrita. Escritas exigem origem/JSON/cabeçalho customizado/CSRF.
 Confira [contrato e validação completos](../docs/architecture/child-registration.md).
-Acesso infantil, edição, arquivamento e uploads continuam para outras etapas.
+Acesso infantil, arquivamento e uploads continuam para outras etapas.
+
+### Edição de fichas infantis
+
+`PATCH /children/:id` exige sessão do profissional proprietário, CSRF, origem
+válida, os sete campos editáveis e a `revision` do detalhe. Essa revisão é uma
+impressão dos dados/timestamps existentes, sem nova coluna. Sob locks ordenados,
+o servidor recusa revisão antiga, ficha arquivada, alteração alheia e campos de
+privilégio. Identidade e acompanhamento são atualizados na mesma transação;
+conflito retorna 409 sem sobrescrever. Não há histórico de versões restauráveis.

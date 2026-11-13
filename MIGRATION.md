@@ -300,7 +300,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Edição/suspensão pela interface, recuperação de senha, crianças e atividades
   permanecem para etapas próprias.
 
-## Cadastro e consulta de crianças — implementados, em revisão
+## Cadastro e consulta de crianças — concluídos (`43f996b`)
 
 - Profissional cadastra e consulta somente suas crianças; ADM sem acesso clínico.
 - POST/GET `/children` e GET `/children/:id`, com filtro de dono na consulta,
@@ -320,6 +320,24 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Auditorias: zero vulnerabilidades reportadas em 93 dependências do frontend
   e 377 do backend. Doze tabelas vazias, três migrations e esquema preservados.
 - Edição, arquivamento, fotos, login infantil e atividades seguem pendentes.
+
+## Edição de crianças — implementada, em revisão
+
+- PATCH próprio com CSRF/origem, validação dos sete campos e revisão derivada
+  dos dados/timestamps existentes; nenhuma nova coluna ou migration.
+- Locks de contas em ordem de UUID, revalidação de perfil/sessão/propriedade e
+  atualização atômica de identidade e ficha. Revisão antiga não sobrescreve.
+- Formulário reutilizado com dados preenchidos, salvar/cancelar e rascunho em
+  memória. Erros mantêm o texto; consulta explícita permite obter a ficha atual.
+- Sem alterar propriedade, papel, estado, senha, foto, atividades ou resultados.
+- Backend: tipos/lint/build, 246 testes unitários, 12 HTTP e 124 MySQL aprovados.
+- Frontend: tipos/build/lint, 38 testes nativos e 1 integração real aprovados.
+- Integração disputa duas atualizações da mesma revisão: uma aceita, outra 409.
+- Chrome: preenchimento, cancelamento, salvamento, conflito com texto mantido,
+  consulta atual, foco, logout e largura de 320 pixels; fixtures revertidas.
+- Auditorias: zero vulnerabilidades reportadas em 93 dependências do frontend
+  e 377 do backend. Doze tabelas vazias, três migrations e esquema preservados.
+- Arquivamento, fotos, acesso infantil e histórico de alterações seguem pendentes.
 
 ## Critérios de validação
 

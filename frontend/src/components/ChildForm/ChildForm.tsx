@@ -1,12 +1,21 @@
 import { useRef, useState, type FormEvent } from 'react'
-import type { CreateChildInput } from '../../features/children/children-api'
+import type {
+  CreateChildInput,
+  ChildView
+} from '../../features/children/children-api'
 import { childInputError } from '../../features/children/child-input'
 import { ApiError, requestError } from '../../services/api'
 
 export function ChildForm({
   disabled,
-  onSubmit
+  onSubmit,
+  initial,
+  onCancel,
+  onReload
 }: {
+  initial?: ChildView
+  onCancel?: () => void
+  onReload?: () => Promise<void>
   disabled: boolean
   onSubmit: (input: CreateChildInput) => Promise<void>
 }) {
@@ -45,15 +54,33 @@ export function ChildForm({
         reportedLevel: input.reportedLevel?.trim() || null,
         notes: input.notes?.trim() || null
       })
-      form.reset()
+      if (!initial) form.reset()
     } catch (failure) {
       setError(
         failure instanceof ApiError && failure.status === 409
-          ? 'Esse usuário já está em uso. Escolha outro para a criança.'
+          ? initial
+            ? 'A ficha mudou ou esse usuário já está em uso. Seu rascunho foi mantido.'
+            : 'Esse usuário já está em uso. Escolha outro para a criança.'
           : failure instanceof ApiError && failure.status === 400
             ? 'Confira os campos e a data de nascimento.'
             : requestError(failure) +
-              ' O cadastro pode ter sido concluído. Confira a lista antes de repetir.'
+              (initial
+                ? ' O salvamento pode ter sido concluído. Seu rascunho foi mantido; confira a ficha antes de repetir.'
+                : ' O cadastro pode ter sido concluído. Confira a lista antes de repetir.')
+      )
+      requestAnimationFrame(() => feedback.current?.focus())
+    } finally {
+      pending.current = false
+    }
+  }
+  async function reload() {
+    if (!onReload || pending.current || disabled) return
+    pending.current = true
+    try {
+      await onReload()
+    } catch {
+      setError(
+        'Não foi possível consultar a ficha atual. Seu rascunho foi mantido.'
       )
       requestAnimationFrame(() => feedback.current?.focus())
     } finally {
@@ -61,12 +88,15 @@ export function ChildForm({
     }
   }
   return (
-    <section className="care-panel" aria-labelledby="child-create-title">
+    <section className="care-panel" aria-labelledby="child-form-title">
       <p className="eyebrow">Cada percurso é único</p>
-      <h2 id="child-create-title">Cadastrar criança</h2>
+      <h2 id="child-form-title" tabIndex={-1}>
+        {initial ? 'Editar cadastro' : 'Cadastrar criança'}
+      </h2>
       <p className="form-hint">
-        O cadastro ficará vinculado ao seu acompanhamento. Preencha as
-        informações com cuidado.
+        {initial
+          ? 'Atualize as informações deste acompanhamento. O vínculo com o profissional será mantido.'
+          : 'O cadastro ficará vinculado ao seu acompanhamento. Preencha as informações com cuidado.'}
       </p>
       <form onSubmit={submit} aria-busy={disabled}>
         <fieldset disabled={disabled} className="care-fields">
@@ -78,6 +108,7 @@ export function ChildForm({
             <input
               id="child-name"
               name="name"
+              defaultValue={initial?.name ?? ''}
               required
               maxLength={510}
               autoComplete="off"
@@ -89,6 +120,7 @@ export function ChildForm({
             <input
               id="child-username"
               name="username"
+              defaultValue={initial?.username ?? ''}
               required
               maxLength={510}
               autoComplete="off"
@@ -106,6 +138,7 @@ export function ChildForm({
             <input
               id="child-birth"
               name="dateOfBirth"
+              defaultValue={initial?.dateOfBirth ?? ''}
               type="date"
               required
               min="1000-01-01"
@@ -118,6 +151,7 @@ export function ChildForm({
             <input
               id="child-guardian"
               name="guardianName"
+              defaultValue={initial?.guardianName ?? ''}
               required
               maxLength={510}
               autoComplete="off"
@@ -129,6 +163,7 @@ export function ChildForm({
             <input
               id="child-level"
               name="reportedLevel"
+              defaultValue={initial?.reportedLevel ?? ''}
               maxLength={510}
               autoComplete="off"
             />
@@ -137,6 +172,7 @@ export function ChildForm({
             <input
               id="child-treatment"
               name="treatmentActive"
+              defaultChecked={initial?.treatmentActive ?? false}
               type="checkbox"
             />
             <label htmlFor="child-treatment">Acompanhamento ativo</label>
@@ -146,6 +182,7 @@ export function ChildForm({
             <textarea
               id="child-notes"
               name="notes"
+              defaultValue={initial?.notes ?? ''}
               rows={4}
               maxLength={4000}
               aria-describedby="child-notes-hint child-create-error"
@@ -170,8 +207,32 @@ export function ChildForm({
           type="submit"
           disabled={disabled}
         >
-          {disabled ? 'Aguarde…' : 'Cadastrar criança'}
+          {disabled
+            ? 'Aguarde…'
+            : initial
+              ? 'Salvar alterações'
+              : 'Cadastrar criança'}
         </button>
+        {initial && error && onReload && (
+          <button
+            className="secondary-button care-cancel"
+            type="button"
+            disabled={disabled}
+            onClick={reload}
+          >
+            Descartar rascunho e consultar ficha atual
+          </button>
+        )}
+        {initial && (
+          <button
+            className="secondary-button care-cancel"
+            type="button"
+            disabled={disabled}
+            onClick={onCancel}
+          >
+            Cancelar edição
+          </button>
+        )}
       </form>
     </section>
   )

@@ -91,7 +91,7 @@ do `.env` que o teste carrega. `FRONTEND_TEST_ORIGIN` permite outra porta IPv4 l
 
 A área do ADM inclui cadastro, listagem paginada de profissionais e reemissão
 com confirmação. A área profissional oferece cadastro, lista paginada e consulta das próprias
-crianças; edição, fotos, acesso infantil e atividades continuam pendentes. A API continua sendo a autoridade de permissões.
+crianças; fotos, acesso infantil e atividades continuam pendentes. A API continua sendo a autoridade de permissões.
 O título acompanha a rota e o foco vai ao conteúdo em navegações internas.
 
 ## Sessão e convite
@@ -172,3 +172,19 @@ somente as identidades e o vínculo dessa fixture. A simulação de cookies remo
 o cookie quando o backend o expira no logout.
 
 [Contrato e limites do cadastro infantil](../docs/architecture/child-registration.md).
+
+## Edição de crianças
+
+Em Ver cadastro, use Editar cadastro. O formulário reaproveita os dados recebidos,
+permite salvar ou cancelar e preserva o texto se o salvamento falhar. A API
+verifica uma revisão da ficha para evitar sobrescrever uma alteração posterior.
+Nenhuma informação de proprietário, papel, estado ou senha é editável.
+
+Após conflito ou resposta incerta, Descartar rascunho e consultar ficha atual
+busca os dados antes de substituir a exibição; se a consulta falhar, o texto
+permanece. Cancelar sozinho não faz essa nova consulta. Salvar não tem repetição
+automática. Os rascunhos ficam só em memória e são perdidos ao sair/recarregar.
+A edição atualiza a ficha; não fornece histórico de versões anteriores.
+
+A integração opcional testa edição, revisão antiga e duas gravações simultâneas:
+uma é aceita e a outra recebe 409. Nenhum dado real é usado.
