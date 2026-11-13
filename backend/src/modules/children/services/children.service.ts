@@ -1,3 +1,7 @@
+import type { ArchiveChildInput } from '../dto/archive-child-input.js';
+import type { Child } from '../entities/child.entity.js';
+import type { Account } from '../../accounts/entities/account.entity.js';
+import { AuthSessionEntity } from '../../auth/entities/auth-session.entity.js';
 import type { EntityManager } from 'typeorm';
 import { childRevision } from './child-revision.js';
 import type { UpdateChildInput } from '../dto/update-child-input.js';
@@ -8,7 +12,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, QueryFailedError, Not } from 'typeorm';
+import { DataSource, QueryFailedError, Not, IsNull } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { AccountEntity } from '../../accounts/entities/account.entity.js';
 import { ProfessionalEntity } from '../../professionals/entities/professional.entity.js';
@@ -71,8 +75,14 @@ export class ChildrenService {
   async list(
     context: SessionContext,
     after: string | null,
+    archived = false,
   ): Promise<ChildDirectory> {
-    const query = this.ownedQuery(context).orderBy('child.id', 'ASC').limit(26);
+    const query = this.ownedQuery(context)
+      .andWhere(
+        archived ? 'child.archivedAt IS NOT NULL' : 'child.archivedAt IS NULL',
+      )
+      .orderBy('child.id', 'ASC')
+      .limit(26);
     if (after) query.andWhere('child.id > :after', { after });
     const rows = await query.getRawMany<SummaryRow>();
     const items = rows.slice(0, 25).map(summary);
@@ -169,6 +179,95 @@ export class ChildrenService {
     id: string,
     input: UpdateChildInput,
   ): Promise<ChildView> {
+    return this.withOwnedChild(
+      context,
+      id,
+      input.revision,
+      async (manager, child, account, now) => {
+        if (child.archivedAt !== null) throw new ConflictException();
+        if (input.dateOfBirth > now.toISOString().slice(0, 10))
+          throw new BadRequestException();
+        const repository = manager.getRepository(AccountEntity);
+        if (
+          await repository.existsBy({
+            username: input.username,
+            id: Not(account.id),
+          })
+        )
+          throw new ConflictException();
+        try {
+          await repository.update(account.id, {
+            name: input.name,
+            username: input.username,
+            updatedAt: now,
+          });
+        } catch (error) {
+          if (
+            error instanceof QueryFailedError &&
+            typeof error.driverError === 'object' &&
+            error.driverError !== null &&
+            'code' in error.driverError &&
+            error.driverError.code === 'ER_DUP_ENTRY'
+          )
+            throw new ConflictException();
+          throw error;
+        }
+        await manager.getRepository(ChildEntity).update(child.id, {
+          dateOfBirth: input.dateOfBirth,
+          guardianName: input.guardianName,
+          treatmentActive: input.treatmentActive,
+          reportedLevel: input.reportedLevel,
+          notes: input.notes,
+          updatedAt: now,
+        });
+        return this.detail(context, id, manager);
+      },
+    );
+  }
+  async setArchived(
+    context: SessionContext,
+    id: string,
+    input: ArchiveChildInput,
+  ): Promise<ChildView> {
+    return this.withOwnedChild(
+      context,
+      id,
+      input.revision,
+      async (manager, child, account, now) => {
+        if ((child.archivedAt !== null) === input.archived)
+          throw new ConflictException();
+        if (input.archived) {
+          if (account.status === 'active')
+            await manager
+              .getRepository(AccountEntity)
+              .update(account.id, { status: 'suspended', updatedAt: now });
+          await manager
+            .getRepository(AuthSessionEntity)
+            .update(
+              { accountId: account.id, revokedAt: IsNull() },
+              { revokedAt: now, updatedAt: now },
+            );
+        }
+        await manager.getRepository(ChildEntity).update(child.id, {
+          archivedAt: input.archived ? now : null,
+          updatedAt: now,
+        });
+        return this.detail(context, id, manager);
+      },
+    );
+  }
+
+  private async withOwnedChild(
+    context: SessionContext,
+    id: string,
+    revision: string,
+    operation: (
+      manager: EntityManager,
+      child: Child,
+      account: Account,
+      now: Date,
+    ) => Promise<ChildView>,
+  ): Promise<ChildView> {
     const found = await this.ownedQuery(context)
       .select('child.accountId', 'accountId')
       .andWhere('child.id = :id', { id })
@@ -180,12 +279,10 @@ export class ChildrenService {
         context,
         [found.accountId],
       );
-      const child = await manager
-        .getRepository(ChildEntity)
-        .findOne({
-          where: { id, professionalId: professional.id },
-          lock: { mode: 'pessimistic_write' },
-        });
+      const child = await manager.getRepository(ChildEntity).findOne({
+        where: { id, professionalId: professional.id },
+        lock: { mode: 'pessimistic_write' },
+      });
       const account = accounts.get(found.accountId);
       if (
         !child ||
@@ -194,47 +291,9 @@ export class ChildrenService {
         account.role !== 'child'
       )
         throw new NotFoundException();
-      if (child.archivedAt !== null) throw new ConflictException();
       const current = await this.detail(context, id, manager);
-      if (current.revision !== input.revision) throw new ConflictException();
-      if (input.dateOfBirth > now.toISOString().slice(0, 10))
-        throw new BadRequestException();
-      const repository = manager.getRepository(AccountEntity);
-      if (
-        await repository.existsBy({
-          username: input.username,
-          id: Not(account.id),
-        })
-      )
-        throw new ConflictException();
-      try {
-        await repository.update(account.id, {
-          name: input.name,
-          username: input.username,
-          updatedAt: now,
-        });
-      } catch (error) {
-        if (
-          error instanceof QueryFailedError &&
-          typeof error.driverError === 'object' &&
-          error.driverError !== null &&
-          'code' in error.driverError &&
-          error.driverError.code === 'ER_DUP_ENTRY'
-        )
-          throw new ConflictException();
-        throw error;
-      }
-      await manager
-        .getRepository(ChildEntity)
-        .update(child.id, {
-          dateOfBirth: input.dateOfBirth,
-          guardianName: input.guardianName,
-          treatmentActive: input.treatmentActive,
-          reportedLevel: input.reportedLevel,
-          notes: input.notes,
-          updatedAt: now,
-        });
-      return this.detail(context, id, manager);
+      if (current.revision !== revision) throw new ConflictException();
+      return operation(manager, child, account, now);
     });
   }
 }

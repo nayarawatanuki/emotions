@@ -446,7 +446,7 @@ por página, sem responsável ou observações; o detalhe é restrito ao proprie
 Nome, usuário, nascimento, responsável, acompanhamento, nível e observações
 seguem validação estrita. Escritas exigem origem/JSON/cabeçalho customizado/CSRF.
 Confira [contrato e validação completos](../docs/architecture/child-registration.md).
-Acesso infantil, arquivamento e uploads continuam para outras etapas.
+Acesso infantil e uploads continuam para outras etapas.
 
 ### Edição de fichas infantis
 
@@ -456,3 +456,22 @@ impressão dos dados/timestamps existentes, sem nova coluna. Sob locks ordenados
 o servidor recusa revisão antiga, ficha arquivada, alteração alheia e campos de
 privilégio. Identidade e acompanhamento são atualizados na mesma transação;
 conflito retorna 409 sem sobrescrever. Não há histórico de versões restauráveis.
+
+### Arquivamento reversível
+
+`PATCH /children/:id/archive` recebe exatamente `{ archived: boolean, revision: string }`.
+Exige o profissional proprietário e os mesmos controles de escrita. Conta, perfil,
+sessão, vínculo e revisão são revalidados sob locks; mudança concorrente ou estado
+já solicitado retorna 409. Não há DELETE. A transação preserva dados vinculados.
+Arquivar suspende uma conta infantil ativa e revoga suas sessões; pendentes e
+suspensas mantêm o estado. Desarquivar não ativa contas nem recupera sessões.
+Acompanhamento informado (`treatmentActive`) permanece independente do arquivo.
+
+`GET /children` mostra não arquivadas; `?archived=true` mostra somente arquivadas.
+`archived=false` é explícito equivalente ao padrão. O filtro aceita somente essas
+strings, pode ser combinado com `after` UUID e mantém 25 itens por página.
+O detalhe próprio continua consultável nos dois estados; edição arquivada é 409.
+Retenção, exclusão definitiva e trilha de eventos não fazem parte desta operação.
+Os futuros serviços de acesso infantil devem verificar arquivamento antes de
+ativar credenciais ou permitir atividades. Tokens atuais são só de profissionais;
+nenhum mecanismo infantil de ativação ou recuperação é liberado nesta etapa.

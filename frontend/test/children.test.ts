@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { ApiError } from '../src/services/api.ts'
 import {
   createChild,
+  setChildArchived,
   updateChild,
   loadChild,
   loadChildren,
@@ -154,6 +155,44 @@ test('update preserves revision, uses PATCH/CSRF, and rejects missing version be
     await updateChild(view.id, input, view.revision, 'fixture-csrf')
     await assert.rejects(updateChild(view.id, input, 'bad', 'csrf'), ApiError)
     assert.equal(calls, 1)
+  } finally {
+    globalThis.fetch = original
+  }
+})
+
+test('archive sends only desired state and revision with PATCH/CSRF; archived list has explicit filter', async () => {
+  const original = globalThis.fetch
+  const calls: { path: string; options: RequestInit }[] = []
+  globalThis.fetch = async (path, options) => {
+    calls.push({ path: String(path), options: options! })
+    return Response.json(
+      String(path).includes('?')
+        ? { items: [], nextCursor: null }
+        : { ...view, archived: true }
+    )
+  }
+  try {
+    assert.equal(
+      (await setChildArchived(view, true, 'fixture-csrf')).archived,
+      true
+    )
+    await loadChildren(null, new AbortController().signal, true)
+    assert.equal(calls[0].path, '/api/children/' + view.id + '/archive')
+    assert.equal(calls[0].options.method, 'PATCH')
+    assert.deepEqual(JSON.parse(String(calls[0].options.body)), {
+      archived: true,
+      revision: view.revision
+    })
+    assert.equal(
+      (calls[0].options.headers as Record<string, string>)['X-CSRF-Token'],
+      'fixture-csrf'
+    )
+    assert.equal(calls[1].path, '/api/children?archived=true')
+    await assert.rejects(
+      setChildArchived({ ...view, revision: 'bad' }, true, 'csrf'),
+      ApiError
+    )
+    assert.equal(calls.length, 2)
   } finally {
     globalThis.fetch = original
   }

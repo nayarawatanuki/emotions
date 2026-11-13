@@ -188,3 +188,17 @@ A edição atualiza a ficha; não fornece histórico de versões anteriores.
 
 A integração opcional testa edição, revisão antiga e duas gravações simultâneas:
 uma é aceita e a outra recebe 409. Nenhum dado real é usado.
+
+## Arquivar e desarquivar fichas
+
+Ver cadastro oferece Arquivar cadastro ou Desarquivar cadastro. O diálogo nativo
+explica o efeito e começa com foco em Cancelar; Escape cancela antes do envio.
+Durante o envio, as ações ficam bloqueadas. Após confirmação, o foco volta à ficha.
+Arquivadas continuam consultáveis, sem edição; o filtro Não arquivados/Arquivados
+reinicia a paginação e solicita ao servidor somente o grupo selecionado.
+
+Desarquivar permite editar novamente, mas não reativa credenciais nem altera o
+acompanhamento informado. A conta infantil desta fase continua sem login.
+Erro ou resultado incerto não repete escrita: Consultar ficha atual lê o estado
+atual antes de permitir uma nova confirmação. A integração disputa edição e
+arquivamento com a mesma revisão: somente uma gravação é aceita.

@@ -1,6 +1,7 @@
 import { ChildEntity } from '../../backend/dist/modules/children/entities/child.entity.js'
 import {
   createChild,
+  setChildArchived,
   updateChild,
   loadChildren,
   loadChild
@@ -303,6 +304,51 @@ test('frontend client completes activation, login, session and logout through re
       rejected?.status === 'rejected' &&
         rejected.reason instanceof ApiError &&
         rejected.reason.status === 409
+    )
+    const latest = await loadChild(child.id)
+    const archiveWrites = await Promise.allSettled([
+      setChildArchived(latest, true, session.csrfToken),
+      updateChild(
+        child.id,
+        { ...editInput, notes: 'Race with archive' },
+        latest.revision,
+        session.csrfToken
+      )
+    ])
+    assert.equal(
+      archiveWrites.filter((result) => result.status === 'fulfilled').length,
+      1
+    )
+    const archiveLoser = archiveWrites.find(
+      (result) => result.status === 'rejected'
+    )
+    assert.ok(
+      archiveLoser?.status === 'rejected' &&
+        archiveLoser.reason instanceof ApiError &&
+        archiveLoser.reason.status === 409
+    )
+    const raced = await loadChild(child.id)
+    const archived = raced.archived
+      ? raced
+      : await setChildArchived(raced, true, session.csrfToken)
+    assert.deepEqual(
+      (await loadChildren(null, new AbortController().signal)).items,
+      []
+    )
+    assert.equal(
+      (await loadChildren(null, new AbortController().signal, true)).items[0]
+        .id,
+      child.id
+    )
+    await assert.rejects(
+      updateChild(child.id, editInput, archived.revision, session.csrfToken),
+      (failure) => failure instanceof ApiError && failure.status === 409
+    )
+    const restored = await setChildArchived(archived, false, session.csrfToken)
+    assert.equal(restored.archived, false)
+    assert.equal(
+      (await loadChildren(null, new AbortController().signal)).items[0].id,
+      child.id
     )
     await logout(session.csrfToken)
     await assert.rejects(

@@ -11,6 +11,8 @@ type State =
   | { status: 'ready'; page: ChildPage }
 export function ChildDirectory({
   revision,
+  archived,
+  onArchivedChange,
   busy,
   visible,
   onSelect,
@@ -18,6 +20,8 @@ export function ChildDirectory({
   onUnauthorized
 }: {
   revision: number
+  archived: boolean
+  onArchivedChange: (archived: boolean) => void
   busy: boolean
   visible: boolean
   onSelect: (id: string) => void
@@ -38,7 +42,7 @@ export function ChildDirectory({
   const after = cursors.at(-1) ?? null
   useEffect(() => {
     const controller = new AbortController()
-    loadChildren(after, controller.signal)
+    loadChildren(after, controller.signal, archived)
       .then((page) => {
         if (!controller.signal.aborted) {
           setState({ status: 'ready', page })
@@ -52,7 +56,7 @@ export function ChildDirectory({
         else setState({ status: 'error' })
       })
     return () => controller.abort()
-  }, [after, reload, revision, onRead, onUnauthorized])
+  }, [after, reload, revision, archived, onRead, onUnauthorized])
   useEffect(() => {
     if (visible && state.status !== 'loading' && focusNext.current) {
       heading.current?.focus()
@@ -71,7 +75,7 @@ export function ChildDirectory({
         <div>
           <p className="eyebrow">Percursos que você acompanha</p>
           <h2 ref={heading} tabIndex={-1} id="children-directory-title">
-            Suas crianças
+            {archived ? 'Fichas arquivadas' : 'Suas crianças'}
           </h2>
         </div>
         <button
@@ -82,6 +86,25 @@ export function ChildDirectory({
           Atualizar lista
         </button>
       </div>
+      <fieldset className="care-directory-filter" disabled={busy}>
+        <legend>Mostrar cadastros</legend>
+        {[false, true].map((value) => (
+          <label key={String(value)}>
+            <input
+              type="radio"
+              name="children-archive-filter"
+              checked={archived === value}
+              onChange={() => {
+                setCursors([null])
+                setState({ status: 'loading' })
+                focusNext.current = true
+                onArchivedChange(value)
+              }}
+            />
+            {value ? 'Arquivados' : 'Não arquivados'}
+          </label>
+        ))}
+      </fieldset>
       {state.status === 'loading' ? (
         <output className="care-status">Carregando cadastros…</output>
       ) : state.status === 'error' ? (
@@ -101,8 +124,9 @@ export function ChildDirectory({
         <>
           {state.page.items.length === 0 ? (
             <p className="form-notice">
-              Nenhuma criança nesta página. Cadastre uma criança acima ou volte
-              à primeira página da lista.
+              {archived
+                ? 'Nenhuma ficha arquivada nesta página.'
+                : 'Nenhuma criança nesta página. Cadastre uma criança acima ou volte à primeira página da lista.'}
             </p>
           ) : (
             <ul className="children-list">

@@ -482,7 +482,10 @@ primeiro ADM, ativação, sessões e recuperação, com decisões ainda em revis
 - Definir retenção e exposição dos campos infantis preservados. O esquema mantém
   `rate` como informação declarada e `treatment` como booleano de tratamento ativo,
   sem converter nenhum deles automaticamente em diagnóstico ou permissão de acesso.
-- Como tratar arquivamento, retenção, transferência e exclusão definitiva?
+- Arquivamento reversível infantil aprovado e implementado em revisão: profissional
+  responsável, confirmação, consulta preservada e restauração sem reativação de
+  acesso. Retenção, transferência, auditoria e exclusão definitiva seguem pendentes.
+  Veja o [contrato infantil](child-registration.md#arquivamento-reversível).
 
 Essas pendências não alteram as regras confirmadas de vínculo, criação das
 atividades, recompensa obrigatória, cadastro pelo ADM, teto de três tentativas

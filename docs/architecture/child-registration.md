@@ -1,7 +1,7 @@
 # Cadastro e consulta de crianças
 
-Cadastro e consulta concluídos no commit `43f996b`. Edição implementada em
-13 de novembro de 2026, aguardando revisão e commit. Usa as
+Cadastro e consulta concluídos no commit `43f996b`, edição no `b6e2720a6`.
+Arquivamento reversível implementado em 13 de novembro de 2026, em revisão. Usa as
 entidades existentes `accounts`, `professionals` e `children`, sem migration,
 dependência, importação de dados antigos ou alteração de privilégios.
 
@@ -17,7 +17,8 @@ O vínculo é obrigatório: um profissional acompanha várias crianças e cada
 criança pertence a um único profissional. O ADM gerencia contas profissionais,
 mas não recebe acesso clínico. O usuário identifica a futura conta infantil;
 esta etapa não cria código de acesso, senha, convite ou sessão infantil.
-Foto, transferência, arquivamento e acesso infantil continuam separados.
+Foto, transferência e acesso infantil continuam separados. Arquivamento reversível
+é uma operação própria aprovada, descrita abaixo.
 Nenhum endpoint de exclusão foi acrescentado.
 
 ## Contrato HTTP
@@ -25,8 +26,9 @@ Nenhum endpoint de exclusão foi acrescentado.
 | Endpoint | Papel | Resultado |
 | --- | --- | --- |
 | `POST /children` | Profissional ativo | 201: ficha criada com identidade infantil pendente |
-| `GET /children?after=<UUID>` | Profissional ativo | 200: até 25 resumos próprios e `nextCursor` |
+| `GET /children?after=<UUID>&archived=true/false` | Profissional ativo | 200: até 25 resumos próprios e `nextCursor` |
 | `PATCH /children/:id` | Profissional ativo e proprietário | 200: ficha atualizada, com nova revisão; 409 se houve conflito |
+| `PATCH /children/:id/archive` | Profissional ativo e proprietário | 200: estado de arquivamento atualizado; 409 se revisão/estado conflitante |
 | `GET /children/:id` | Profissional ativo e proprietário | 200: ficha própria; 404 se ausente ou de outro profissional |
 
 Autenticação deve estar habilitada. Sem ela, os módulos privados não são
@@ -120,6 +122,46 @@ Este incremento altera o estado atual da ficha. Não guarda cópias anteriores
 para restauração ou auditoria clínica; isso exige desenho e aprovação próprios.
 Atividades, tentativas, recompensas e resultados não são alterados pela edição.
 
+## Arquivamento reversível
+
+A operação substitui a exclusão física do sistema antigo. Somente o proprietário
+pode arquivar/desarquivar, após confirmação explícita. O corpo tem exatamente
+`archived` booleano e `revision` de 64 hexadecimais minúsculos, sem campos de
+proprietário, conta, acompanhamento ou timestamp. Usa a mesma transação da edição:
+locks ordenados de contas, perfil e sessão, depois ficha; propriedade, papel,
+estado, prazo e revisão conferidos antes da alteração. Revisão antiga ou estado
+já solicitado retorna 409. Não há repetição automática nem exclusão em cascata.
+
+`GET /children` e `archived=false` mostram apenas não arquivadas; `archived=true`
+mostra apenas arquivadas. O filtro combina com `after`, recusa duplicidade,
+valores não canônicos e campos extras. Os dois grupos têm a mesma projeção,
+isolamento, limite e cursor. Trocar de grupo reinicia o percurso na interface.
+A ficha arquivada permanece acessível no detalhe próprio, com aviso e sem edição.
+
+Arquivar define `archived_at`, suspende conta infantil que esteja ativa e revoga
+suas sessões ainda não revogadas, tudo atomicamente. Pendentes/suspensas mantêm
+o estado; senha e nome de usuário são preservados. Desarquivar apenas limpa o
+arquivo da ficha: não reativa credenciais nem sessões e não altera
+`treatmentActive`, proprietário, foto, atividades, tentativas ou resultados.
+A suspensão de acesso é independente da informação clínica de acompanhamento.
+
+A autenticação infantil continua pendente e recusada no login adulto. Tokens do
+esquema atual são exclusivos de profissionais, sem tokens infantis a reemitir ou
+revogar. Futuros fluxos infantis deverão conferir `archived_at` na transação antes
+de ativar credenciais, criar sessão ou executar atividades; o presente incremento
+não implementa esses fluxos nem um desbloqueio automático após desarquivamento.
+
+O diálogo HTML nativo recebe nome/descrição, mantém foco inicial em Cancelar e
+bloqueia confirmação/cancelamento durante envio. Quando a sessão é revalidada,
+o diálogo fecha enquanto o painel está oculto e reabre se o acesso for confirmado.
+Erro/conflito oferece Consultar ficha atual; a resposta atual substitui a ficha e
+fecha o diálogo, exigindo nova abertura/confirmação para repetir a escrita.
+Se a leitura falhar, o diálogo permanece. Cancelar não grava nem refaz consultas.
+
+Arquivar não define retenção, exclusão definitiva ou histórico de quem fez a
+mudança. O campo existente guarda apenas o estado/timestamp atual; políticas de
+retenção e auditoria precisam de desenho próprio antes de uso clínico real.
+
 ## Retorno mínimo e interface
 
 A lista retorna somente `id`, `name`, `username`, `dateOfBirth`,
@@ -148,9 +190,9 @@ implicitamente do CSS administrativo. O visual anterior permanece preservado.
 
 ## Validação
 
-- Backend: tipos, lint e build; 246 testes unitários, 12 HTTP e 124 com MySQL.
-- Frontend: tipos/build e lint; 38 testes nativos e 1 integração pelo proxy real.
-- Total: 421 testes aprovados.
+- Backend: tipos, lint e build; 265 testes unitários, 12 HTTP e 134 com MySQL.
+- Frontend: tipos/build e lint; 39 testes nativos e 1 integração pelo proxy real.
+- Total: 451 testes aprovados.
 - Testes específicos cobrem vínculo pela sessão, entrada forjada, data inválida
   ou futura, unicidade, criação sem senha, rollback e mudança de estado entre
   guard e escrita (suspensão, perfil arquivado ou sessão revogada).
@@ -162,6 +204,13 @@ implicitamente do CSS administrativo. O visual anterior permanece preservado.
 - Edição: recusa revisão antiga, campos privilegiados e alterações alheias;
   testa atomicidade, unicidade e mudanças de acesso após o guard. A integração
   real disputa duas gravações com a mesma revisão: uma salva e a outra recebe 409.
+- Arquivamento: rollback da suspensão/revogação, proprietário/ADM/visitante,
+  estados após guard, CSRF/origem, filtros e paginação de ambos os grupos,
+  edição bloqueada e restauração sem reativação. Comparação antes/depois confirma
+  preservação de foto, atividade, alternativas, recompensa, resultado e tentativa.
+- Integração real: edição versus arquivamento com a mesma revisão aceita uma só
+  gravação. Chrome: cancelar/Escape, arquivar, lista separada, consulta, desarquivar,
+  foco, conflito/consulta atual, logout e largura de 320 pixels.
 - Chrome da edição: formulário preenchido, cancelamento, salvamento, conflito
   provocado por outra solicitação, texto mantido e consulta explícita da versão
   atual, foco, logout e 320 pixels.
@@ -178,8 +227,8 @@ implicitamente do CSS administrativo. O visual anterior permanece preservado.
 ## Limites
 
 A conta infantil permanece pendente e não pode usar o login adulto. O cadastro
-não libera atividades nem entrega credenciais. Histórico de alterações, transferência, foto,
-arquivamento, autenticação infantil e atividades precisam de etapas próprias.
+não libera atividades nem entrega credenciais. Histórico de alterações, transferência, foto, retenção/exclusão definitiva,
+autenticação infantil e atividades precisam de etapas próprias.
 Não foi feita auditoria completa com leitor de tela nem validação de produção,
 retenção clínica ou conformidade legal. `_old/` continua necessário como referência.
 

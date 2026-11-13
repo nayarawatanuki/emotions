@@ -1,3 +1,9 @@
+import { StoredFileEntity } from '../src/modules/files/entities/stored-file.entity.js';
+import { ActivityEntity } from '../src/modules/activities/entities/activity.entity.js';
+import { ActivityOptionEntity } from '../src/modules/activities/entities/activity-option.entity.js';
+import { RewardEntity } from '../src/modules/activities/entities/reward.entity.js';
+import { ActivityResultEntity } from '../src/modules/results/entities/activity-result.entity.js';
+import { ActivityAttemptEntity } from '../src/modules/results/entities/activity-attempt.entity.js';
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -373,68 +379,76 @@ describe('child records isolated by professional on real MySQL with rollback', (
       expect(await runner.manager.getRepository(ChildEntity).count()).toBe(0);
     },
   );
-  it('enforces bounded cursor pagination without including another owner', async () => {
-    const accounts = [];
-    const children: {
-      id: string;
-      accountId: string;
-      professionalId: string;
-      dateOfBirth: string;
-      guardianName: string;
-      treatmentActive: boolean;
-    }[] = [];
-    let foreignId = '';
-    for (let index = 0; index < 27; index++) {
-      const accountId = randomUUID();
-      accounts.push({
-        id: accountId,
-        name: `Synthetic page ${index}`,
-        username: `fixture-child-page-${index}`,
-        role: 'child' as const,
-        status: 'pending' as const,
-        passwordHash: null,
-      });
-      children.push({
-        id: randomUUID(),
-        accountId,
-        professionalId: index === 26 ? secondProfile : firstProfile,
-        dateOfBirth: '2020-02-29',
-        guardianName: 'Synthetic guardian',
-        treatmentActive: index % 2 === 0,
-      });
-    }
-    foreignId = children.find(
-      (child) => child.professionalId === secondProfile,
-    )!.id;
-    await runner.manager.getRepository(AccountEntity).insert(accounts);
-    await runner.manager.getRepository(ChildEntity).insert(children);
-    expect(
-      (
-        await runner.manager
-          .getRepository(ChildEntity)
-          .findOneByOrFail({ id: foreignId })
-      ).professionalId,
-    ).toBe(secondProfile);
-    const first = await get().expect(200);
-    expect(first.body.items).toHaveLength(25);
-    const second = await get('/children?after=' + first.body.nextCursor).expect(
-      200,
-    );
-    expect(second.body.items).toHaveLength(1);
-    expect(second.body.nextCursor).toBeNull();
-    expect(
-      new Set(
-        [...first.body.items, ...second.body.items].map(
-          (item: { id: string }) => item.id,
+  it.each([false, true])(
+    'enforces bounded cursor pagination without including another owner (archived=%s)',
+    async (archived) => {
+      const accounts = [];
+      const children: {
+        id: string;
+        accountId: string;
+        professionalId: string;
+        dateOfBirth: string;
+        guardianName: string;
+        treatmentActive: boolean;
+        archivedAt: Date | null;
+      }[] = [];
+      let foreignId = '';
+      for (let index = 0; index < 27; index++) {
+        const accountId = randomUUID();
+        accounts.push({
+          id: accountId,
+          name: `Synthetic page ${index}`,
+          username: `fixture-child-page-${index}`,
+          role: 'child' as const,
+          status: 'pending' as const,
+          passwordHash: null,
+        });
+        children.push({
+          id: randomUUID(),
+          accountId,
+          professionalId: index === 26 ? secondProfile : firstProfile,
+          dateOfBirth: '2020-02-29',
+          guardianName: 'Synthetic guardian',
+          treatmentActive: index % 2 === 0,
+          archivedAt: archived ? new Date() : null,
+        });
+      }
+      foreignId = children.find(
+        (child) => child.professionalId === secondProfile,
+      )!.id;
+      await runner.manager.getRepository(AccountEntity).insert(accounts);
+      await runner.manager.getRepository(ChildEntity).insert(children);
+      expect(
+        (
+          await runner.manager
+            .getRepository(ChildEntity)
+            .findOneByOrFail({ id: foreignId })
+        ).professionalId,
+      ).toBe(secondProfile);
+      const filter = archived ? 'archived=true&' : '';
+      const first = await get(
+        archived ? '/children?archived=true' : '/children',
+      ).expect(200);
+      expect(first.body.items).toHaveLength(25);
+      const second = await get(
+        '/children?' + filter + 'after=' + first.body.nextCursor,
+      ).expect(200);
+      expect(second.body.items).toHaveLength(1);
+      expect(second.body.nextCursor).toBeNull();
+      expect(
+        new Set(
+          [...first.body.items, ...second.body.items].map(
+            (item: { id: string }) => item.id,
+          ),
+        ).size,
+      ).toBe(26);
+      expect(
+        [...first.body.items, ...second.body.items].some(
+          (item: { id: string }) => item.id === foreignId,
         ),
-      ).size,
-    ).toBe(26);
-    expect(
-      [...first.body.items, ...second.body.items].some(
-        (item: { id: string }) => item.id === foreignId,
-      ),
-    ).toBe(false);
-  });
+      ).toBe(false);
+    },
+  );
 
   function patch(id: string, body: object, token = tokens.first) {
     return request(app.getHttpServer())
@@ -622,5 +636,327 @@ describe('child records isolated by professional on real MySQL with rollback', (
       '/children/not-a-uuid',
     ])
       await get(path).expect(400);
+  });
+  function archive(child: ChildView, archived = true, token = tokens.first) {
+    return patch(
+      child.id + '/archive',
+      { archived, revision: child.revision },
+      token,
+    );
+  }
+  it('archives reversibly, keeps clinical fields and pending identity, filters both directories', async () => {
+    const child = await create();
+    const other = await create('fixture-child-other', tokens.second);
+    await archive(other, true, tokens.second).expect(200);
+    const response = await archive(child).expect(200);
+    const archived = response.body as ChildView;
+    expect(archived).toEqual({
+      ...child,
+      archived: true,
+      revision: expect.any(String),
+    });
+    expect(archived.revision).not.toBe(child.revision);
+    expect((await get().expect(200)).body.items).toEqual([]);
+    expect(
+      (await get('/children?archived=false').expect(200)).body.items,
+    ).toEqual([]);
+    expect(
+      (await get('/children?archived=true').expect(200)).body.items.map(
+        (row: { id: string }) => row.id,
+      ),
+    ).toEqual([child.id]);
+    await get('/children/' + child.id)
+      .expect(200)
+      .expect(archived);
+    await patch(child.id, editBody(archived)).expect(409);
+    await archive(archived).expect(409);
+    await archive(child, false).expect(409);
+    const restored = (await archive(archived, false).expect(200))
+      .body as ChildView;
+    expect(restored).toEqual({ ...child, revision: expect.any(String) });
+    expect((await get('/children?archived=true')).body.items).toEqual([]);
+    expect((await get()).body.items[0].id).toBe(child.id);
+    const row = await runner.manager
+      .getRepository(ChildEntity)
+      .findOneByOrFail({ id: child.id });
+    expect(
+      await runner.manager
+        .getRepository(AccountEntity)
+        .findOneByOrFail({ id: row.accountId }),
+    ).toMatchObject({ status: 'pending', role: 'child' });
+    await patch(child.id, editBody(restored)).expect(200);
+  });
+  it('does not allow archive by other owners, ADM or anonymous visitors', async () => {
+    const child = await create();
+    const foreign = await archive(child, true, tokens.second).expect(404);
+    const absent = await archive(
+      { ...child, id: randomUUID() },
+      true,
+      tokens.second,
+    ).expect(404);
+    expect(foreign.body).toEqual(absent.body);
+    await archive(child, true, tokens.admin).expect(403);
+    await request(app.getHttpServer())
+      .patch('/children/' + child.id + '/archive')
+      .set('Origin', origin)
+      .set('X-Emotions-Request', '1')
+      .send({ archived: true, revision: child.revision })
+      .expect(401);
+    await get('/children?archived=true', tokens.admin).expect(403);
+  });
+  it('requires archive origin/CSRF and rejects privileged bodies and malformed filters', async () => {
+    const child = await create();
+    const path = '/children/' + child.id + '/archive';
+    for (const hostile of [false, true]) {
+      const call = request(app.getHttpServer())
+        .patch(path)
+        .set('Cookie', `emotions_session_local=${tokens.first}`)
+        .set('Origin', hostile ? 'https://untrusted.example' : origin)
+        .set('X-Emotions-Request', '1');
+      if (hostile) call.set('X-CSRF-Token', csrfToken(secret, tokens.first));
+      await call.send({ archived: true, revision: child.revision }).expect(403);
+    }
+    for (const body of [
+      { archived: 'true', revision: child.revision },
+      { archived: true, revision: child.revision, status: 'active' },
+      { archived: true },
+    ])
+      await patch(child.id + '/archive', body).expect(400);
+    for (const query of [
+      'archived=all',
+      'archived=true&archived=false',
+      'archived=',
+      'archived=true&after=bad',
+    ])
+      await get('/children?' + query).expect(400);
+  });
+  it('suspends active child access, revokes its sessions, and never revives access on restore', async () => {
+    const child = await create();
+    const row = await runner.manager
+      .getRepository(ChildEntity)
+      .findOneByOrFail({ id: child.id });
+    await runner.manager
+      .getRepository(AccountEntity)
+      .update(row.accountId, { status: 'active', passwordHash: hash });
+    const now = await databaseNow(runner.manager);
+    const sessionId = randomUUID();
+    await runner.manager.getRepository(AuthSessionEntity).insert({
+      id: sessionId,
+      accountId: row.accountId,
+      sessionDigest: sessionDigest(createSessionToken()),
+      createdAt: now,
+      updatedAt: now,
+      lastSeenAt: now,
+      idleExpiresAt: new Date(now.getTime() + 60000),
+      expiresAt: new Date(now.getTime() + 120000),
+    });
+    const current = (await get('/children/' + child.id)).body as ChildView;
+    const archived = (await archive(current).expect(200)).body as ChildView;
+    const accounts = runner.manager.getRepository(AccountEntity);
+    expect((await accounts.findOneByOrFail({ id: row.accountId })).status).toBe(
+      'suspended',
+    );
+    expect(
+      (
+        await runner.manager
+          .getRepository(AuthSessionEntity)
+          .findOneByOrFail({ id: sessionId })
+      ).revokedAt,
+    ).not.toBeNull();
+    await archive(archived, false).expect(200);
+    expect((await accounts.findOneByOrFail({ id: row.accountId })).status).toBe(
+      'suspended',
+    );
+    expect(
+      (
+        await runner.manager
+          .getRepository(AuthSessionEntity)
+          .findOneByOrFail({ id: sessionId })
+      ).revokedAt,
+    ).not.toBeNull();
+  });
+  it('rolls back access suspension and session revocation if the archive write fails', async () => {
+    const child = await create();
+    const row = await runner.manager
+      .getRepository(ChildEntity)
+      .findOneByOrFail({ id: child.id });
+    await runner.manager
+      .getRepository(AccountEntity)
+      .update(row.accountId, { status: 'active', passwordHash: hash });
+    const now = await databaseNow(runner.manager);
+    const sessionId = randomUUID();
+    await runner.manager.getRepository(AuthSessionEntity).insert({
+      id: sessionId,
+      accountId: row.accountId,
+      sessionDigest: sessionDigest(createSessionToken()),
+      createdAt: now,
+      updatedAt: now,
+      lastSeenAt: now,
+      idleExpiresAt: new Date(now.getTime() + 60000),
+      expiresAt: new Date(now.getTime() + 120000),
+    });
+    const current = (await get('/children/' + child.id)).body as ChildView;
+    vi.spyOn(
+      runner.manager.getRepository(ChildEntity),
+      'update',
+    ).mockRejectedValueOnce(Error('synthetic archive failure'));
+    await archive(current).expect(500);
+    expect(
+      (
+        await runner.manager
+          .getRepository(AccountEntity)
+          .findOneByOrFail({ id: row.accountId })
+      ).status,
+    ).toBe('active');
+    expect(
+      (
+        await runner.manager
+          .getRepository(AuthSessionEntity)
+          .findOneByOrFail({ id: sessionId })
+      ).revokedAt,
+    ).toBeNull();
+    await get('/children/' + child.id)
+      .expect(200)
+      .expect(current);
+  });
+  it.each(['suspended', 'archived', 'revoked'])(
+    'revalidates professional %s after archive guard',
+    async (change) => {
+      const child = await create();
+      const service = app.get(ChildrenService);
+      const original = service.setArchived.bind(service);
+      vi.spyOn(service, 'setArchived').mockImplementationOnce(
+        async (context, id, body) => {
+          const now = await databaseNow(runner.manager);
+          if (change === 'suspended')
+            await runner.manager
+              .getRepository(AccountEntity)
+              .update(firstAccount, { status: 'suspended' });
+          else if (change === 'archived')
+            await runner.manager
+              .getRepository(ProfessionalEntity)
+              .update(firstProfile, { archivedAt: now });
+          else
+            await runner.manager
+              .getRepository(AuthSessionEntity)
+              .update(firstSession, { revokedAt: now });
+          return original(context, id, body);
+        },
+      );
+      await archive(child).expect(change === 'archived' ? 404 : 401);
+      expect(
+        (
+          await runner.manager
+            .getRepository(ChildEntity)
+            .findOneByOrFail({ id: child.id })
+        ).archivedAt,
+      ).toBeNull();
+    },
+  );
+  it('preserves photos, activities, alternatives, reward, result and timed attempt across archive/restore', async () => {
+    const child = await create();
+    const manager = runner.manager;
+    const fileId = randomUUID(),
+      activityId = randomUUID(),
+      optionId = randomUUID(),
+      resultId = randomUUID();
+    await manager
+      .getRepository(StoredFileEntity)
+      .insert({
+        id: fileId,
+        professionalId: firstProfile,
+        storageKey: 'fixture/' + fileId,
+        mediaType: 'image/png',
+        sizeBytes: '1',
+      });
+    await manager
+      .getRepository(ChildEntity)
+      .update(child.id, { photoFileId: fileId });
+    await manager
+      .getRepository(ActivityEntity)
+      .insert({
+        id: activityId,
+        childId: child.id,
+        professionalId: firstProfile,
+        name: 'Synthetic activity',
+        emotion: 'Joy',
+        imageFileId: fileId,
+      });
+    await manager
+      .getRepository(ActivityOptionEntity)
+      .insert({
+        id: optionId,
+        activityId,
+        position: 1,
+        label: 'Synthetic option',
+        isCorrect: true,
+      });
+    await manager
+      .getRepository(RewardEntity)
+      .insert({
+        id: randomUUID(),
+        activityId,
+        professionalId: firstProfile,
+        imageFileId: fileId,
+        message: 'Synthetic reward',
+      });
+    const startedAt = new Date('2026-01-01T12:00:00Z'),
+      answeredAt = new Date('2026-01-01T12:00:01Z');
+    await manager
+      .getRepository(ActivityResultEntity)
+      .insert({
+        id: resultId,
+        activityId,
+        professionalId: firstProfile,
+        sequence: 1,
+        status: 'completed',
+        outcome: 'correct',
+        startedAt,
+        completedAt: answeredAt,
+      });
+    await manager
+      .getRepository(ActivityAttemptEntity)
+      .insert({
+        id: randomUUID(),
+        resultId,
+        activityId,
+        selectedOptionId: optionId,
+        attemptNumber: 1,
+        operationId: randomUUID(),
+        startedAt,
+        answeredAt,
+        durationSeconds: '1',
+        timingSource: 'server_elapsed',
+        isCorrect: true,
+      });
+    const tables = [
+      'files',
+      'activities',
+      'activity_options',
+      'rewards',
+      'activity_results',
+      'activity_attempts',
+    ] as const;
+    const before = await Promise.all(
+      tables.map((table) =>
+        runner.query(`SELECT * FROM \`${table}\` ORDER BY id`),
+      ),
+    );
+    const current = (await get('/children/' + child.id)).body as ChildView;
+    const archived = (await archive(current).expect(200)).body as ChildView;
+    await archive(archived, false).expect(200);
+    const after = await Promise.all(
+      tables.map((table) =>
+        runner.query(`SELECT * FROM \`${table}\` ORDER BY id`),
+      ),
+    );
+    expect(after).toEqual(before);
+    expect(
+      (
+        await manager
+          .getRepository(ChildEntity)
+          .findOneByOrFail({ id: child.id })
+      ).photoFileId,
+    ).toBe(fileId);
   });
 });

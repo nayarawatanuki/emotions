@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AdultSession } from '../../features/auth/auth-api'
 import { ApiError, requestError } from '../../services/api'
 import {
   createChild,
+  setChildArchived,
   updateChild,
   loadChild,
   type ChildView,
@@ -11,6 +12,7 @@ import {
 import { ChildForm } from '../../components/ChildForm/ChildForm'
 import { ChildDirectory } from '../../components/ChildDirectory/ChildDirectory'
 import { ChildDetails } from '../../components/ChildDetails/ChildDetails'
+import { ChildArchiveDialog } from '../../components/ChildArchiveDialog/ChildArchiveDialog'
 import './ProfessionalCare.css'
 export function ProfessionalCare({
   session,
@@ -27,11 +29,23 @@ export function ProfessionalCare({
   onUnauthorized: () => void
   onSessionRefresh: () => void
 }) {
+  const [archived, setArchived] = useState(false)
+  const [archiveRequest, setArchiveRequest] = useState<{
+    child: ChildView
+    opener: HTMLElement
+  } | null>(null)
   const [editing, setEditing] = useState<ChildView | null>(null)
   const [detail, setDetail] = useState<ChildView | null>(null)
   const [revision, setRevision] = useState(0)
   const [error, setError] = useState('')
   const [reading, setReading] = useState(false)
+  const focusDetail = useRef(false)
+  useEffect(() => {
+    if (visible && !disabled && focusDetail.current) {
+      focusDetail.current = false
+      document.getElementById('child-details-title')?.focus()
+    }
+  }, [visible, disabled, detail])
   const pending = useRef(false)
   const feedback = useRef<HTMLParagraphElement>(null)
   async function perform<T>(operation: () => Promise<T>): Promise<T> {
@@ -75,6 +89,31 @@ export function ProfessionalCare({
     setError('')
     onSessionRefresh()
   }
+  async function archive() {
+    if (!archiveRequest) return
+    const child = await perform(() =>
+      setChildArchived(
+        archiveRequest.child,
+        !archiveRequest.child.archived,
+        session.csrfToken
+      )
+    )
+    setArchiveRequest(null)
+    setDetail(child)
+    setRevision((value) => value + 1)
+    setError('')
+    focusDetail.current = true
+    onSessionRefresh()
+  }
+  async function reloadArchive() {
+    if (!archiveRequest) return
+    const child = await perform(() => loadChild(archiveRequest.child.id))
+    setArchiveRequest(null)
+    setDetail(child)
+    setRevision((value) => value + 1)
+    focusDetail.current = true
+    onSessionRefresh()
+  }
   async function select(id: string) {
     setDetail(null)
     setError('')
@@ -113,7 +152,8 @@ export function ProfessionalCare({
         <ChildDetails
           key={detail.id}
           child={detail}
-          disabled={disabled}
+          disabled={disabled || archiveRequest !== null}
+          onArchive={(opener) => setArchiveRequest({ child: detail, opener })}
           onEdit={() => {
             setEditing(detail)
             requestAnimationFrame(() =>
@@ -129,9 +169,21 @@ export function ProfessionalCare({
           }}
         />
       )}
+      {archiveRequest && (
+        <ChildArchiveDialog
+          child={archiveRequest.child}
+          visible={visible}
+          returnFocus={archiveRequest.opener}
+          onConfirm={archive}
+          onReload={reloadArchive}
+          onCancel={() => setArchiveRequest(null)}
+        />
+      )}
       <ChildDirectory
+        archived={archived}
+        onArchivedChange={setArchived}
         revision={revision}
-        busy={disabled || editing !== null}
+        busy={disabled || editing !== null || archiveRequest !== null}
         visible={visible}
         onSelect={select}
         onRead={onSessionRefresh}

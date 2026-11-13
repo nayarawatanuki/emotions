@@ -21,7 +21,7 @@ Não se deve copiar automaticamente a implementação anterior.
 - [ ] Revisar o modelo de dados, as permissões e a integração de persistência.
 - [ ] Implementar autenticação e autorização no servidor.
 - [ ] Migrar os formulários de acesso e integrar as sessões.
-- [ ] Migrar cadastro, listagem, edição e exclusão de crianças.
+- [x] Migrar cadastro, listagem, edição e arquivamento reversível de crianças.
 - [ ] Migrar atividades, alternativas e recompensas.
 - [ ] Migrar uploads e entrega protegida de imagens.
 - [ ] Migrar execução das atividades e registro de resultados.
@@ -321,7 +321,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   e 377 do backend. Doze tabelas vazias, três migrations e esquema preservados.
 - Edição, arquivamento, fotos, login infantil e atividades seguem pendentes.
 
-## Edição de crianças — implementada, em revisão
+## Edição de crianças — concluída (`b6e2720a6`)
 
 - PATCH próprio com CSRF/origem, validação dos sete campos e revisão derivada
   dos dados/timestamps existentes; nenhuma nova coluna ou migration.
@@ -338,6 +338,36 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Auditorias: zero vulnerabilidades reportadas em 93 dependências do frontend
   e 377 do backend. Doze tabelas vazias, três migrations e esquema preservados.
 - Arquivamento, fotos, acesso infantil e histórico de alterações seguem pendentes.
+
+## Arquivamento reversível de crianças — implementado, em revisão
+
+- Aprovação da desenvolvedora: arquivar/desarquivar pelo profissional responsável,
+  confirmação explícita, consulta preservada e nenhuma exclusão física.
+- PATCH `/children/:id/archive` recebe estado desejado e revisão atual, com
+  autorização, CSRF, locks, revalidação e rollback compartilhados com a edição.
+- Diretório padrão exclui arquivadas; `archived=true` consulta somente arquivadas,
+  com o mesmo limite/cursor, projeção mínima e isolamento por profissional.
+- Arquivar suspende conta infantil ativa e revoga sessões ainda não revogadas.
+  Contas pendentes continuam pendentes. Desarquivar não reativa contas/sessões,
+  não altera acompanhamento e libera novamente a edição da ficha.
+- Diálogo HTML nativo com Cancelar como foco inicial, Escape, bloqueio durante
+  operação e retorno à ficha após sucesso. Erros exigem consulta explícita antes
+  de nova tentativa; nenhuma escrita é repetida automaticamente.
+- Backend: tipos/lint/build, 265 testes unitários, 12 HTTP e 134 MySQL aprovados.
+- Frontend: tipos/build/lint, 39 testes nativos e 1 integração real aprovados.
+- Total: 451 testes. Incluem disputa edição/arquivamento, rollback de suspensão/
+  revogação e preservação de foto, atividade, alternativas, recompensa, resultado
+  e tentativa com duração. Paginação testada para os dois estados.
+- Chrome: arquivar, cancelar/Escape, consultar arquivadas, desarquivar, edição
+  bloqueada, conflito concorrente/consulta atual, foco, logout e 320 pixels.
+- Demonstração sintética revertida: doze tabelas vazias após rollback. Pós-teste
+  confirmou três migrations, zero divergência de esquema e nenhum manifesto pendente.
+- Auditorias atuais: zero vulnerabilidades reportadas em 377 dependências do
+  backend e 93 do frontend; avisos existentes do Yarn Classic mantidos.
+- Sem dependência, lockfile, migration, privilégio, importação ou dado real novo.
+- Histórico de mudanças, retenção/exclusão definitiva, transferência, fotos e
+  acesso infantil completo continuam em etapas próprias. Os futuros serviços
+  infantis também deverão conferir `archived_at` dentro de suas transações.
 
 ## Critérios de validação
 

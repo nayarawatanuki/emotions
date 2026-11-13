@@ -82,11 +82,15 @@ export function parseChild(value: unknown): ChildView {
 }
 export async function loadChildren(
   after: string | null,
-  signal: AbortSignal
+  signal: AbortSignal,
+  archived = false
 ): Promise<ChildPage> {
   if (after !== null && !uuid.test(after)) throw new ApiError(400)
+  const query = new URLSearchParams()
+  if (after) query.set('after', after)
+  if (archived) query.set('archived', 'true')
   const result = await apiRequest(
-    '/children' + (after ? '?after=' + encodeURIComponent(after) : ''),
+    '/children' + (query.size ? '?' + query.toString() : ''),
     { signal }
   )
   if (
@@ -136,6 +140,22 @@ export async function updateChild(
     await apiRequest('/children/' + id, {
       method: 'PATCH',
       body: { ...input, revision },
+      csrfToken
+    })
+  )
+}
+
+export async function setChildArchived(
+  child: Pick<ChildView, 'id' | 'revision'>,
+  archived: boolean,
+  csrfToken: string
+): Promise<ChildView> {
+  if (!uuid.test(child.id) || !/^[a-f0-9]{64}$/.test(child.revision))
+    throw new ApiError(400)
+  return parseChild(
+    await apiRequest('/children/' + child.id + '/archive', {
+      method: 'PATCH',
+      body: { archived, revision: child.revision },
       csrfToken
     })
   )

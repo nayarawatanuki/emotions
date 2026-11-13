@@ -19,7 +19,8 @@ import type {
 } from '../../auth/auth.types.js';
 import { ChildrenService } from '../services/children.service.js';
 import { parseCreateChildInput } from '../dto/create-child-input.js';
-import { parseUuidCursor } from '../../../common/validation/uuid-cursor.js';
+import { parseChildDirectoryQuery } from '../dto/child-directory-query.js';
+import { parseArchiveChildInput } from '../dto/archive-child-input.js';
 import type { ChildDirectory, ChildView } from '../dto/child-view.js';
 function context(request: AuthenticatedRequest): SessionContext {
   if (!request.auth) throw new UnauthorizedException();
@@ -35,7 +36,8 @@ export class ChildrenController {
     @Req() request: AuthenticatedRequest,
     @Query() query: unknown,
   ): Promise<ChildDirectory> {
-    return this.children.list(context(request), parseUuidCursor(query));
+    const { after, archived } = parseChildDirectoryQuery(query);
+    return this.children.list(context(request), after, archived);
   }
   @Get(':id') detail(
     @Req() request: AuthenticatedRequest,
@@ -58,6 +60,17 @@ export class ChildrenController {
       context(request),
       id,
       parseUpdateChildInput(body),
+    );
+  }
+  @Patch(':id/archive') archive(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ): Promise<ChildView> {
+    return this.children.setArchived(
+      context(request),
+      id,
+      parseArchiveChildInput(body),
     );
   }
 }

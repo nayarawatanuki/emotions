@@ -8,10 +8,12 @@ export function ChildDetails({
   visible,
   onClose,
   onEdit,
+  onArchive,
   disabled = false
 }: {
   disabled?: boolean
   onEdit?: () => void
+  onArchive?: (opener: HTMLElement) => void
   child: ChildView
   visible: boolean
   onClose: () => void
@@ -67,6 +69,15 @@ export function ChildDetails({
         </div>
       </dl>
       <div className="care-detail-actions">
+        {onArchive && (
+          <button
+            className="secondary-button"
+            disabled={disabled}
+            onClick={(event) => onArchive(event.currentTarget)}
+          >
+            {child.archived ? 'Desarquivar cadastro' : 'Arquivar cadastro'}
+          </button>
+        )}
         {!child.archived && onEdit && (
           <button
             className="access-button care-primary"
