@@ -1,14 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { ApiError } from '../../services/api'
+import { useCursorDirectory } from '../../features/directory/useCursorDirectory'
+import { useCallback } from 'react'
 import {
   loadChildren,
-  formatCivilDate,
-  type ChildPage
+  formatCivilDate
 } from '../../features/children/children-api'
-type State =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; page: ChildPage }
 export function ChildDirectory({
   revision,
   archived,
@@ -28,47 +23,13 @@ export function ChildDirectory({
   onRead: () => void
   onUnauthorized: () => void
 }) {
-  const [cursors, setCursors] = useState<(string | null)[]>([null])
-  const [reload, setReload] = useState(0)
-  const [state, setState] = useState<State>({ status: 'loading' })
-  const [previousRevision, setPreviousRevision] = useState(revision)
-  const heading = useRef<HTMLHeadingElement>(null)
-  const focusNext = useRef(false)
-  if (previousRevision !== revision) {
-    setPreviousRevision(revision)
-    setCursors([null])
-    setState({ status: 'loading' })
-  }
-  const after = cursors.at(-1) ?? null
-  useEffect(() => {
-    const controller = new AbortController()
-    loadChildren(after, controller.signal, archived)
-      .then((page) => {
-        if (!controller.signal.aborted) {
-          setState({ status: 'ready', page })
-          onRead()
-        }
-      })
-      .catch((failure) => {
-        if (controller.signal.aborted) return
-        if (failure instanceof ApiError && [401, 403].includes(failure.status))
-          onUnauthorized()
-        else setState({ status: 'error' })
-      })
-    return () => controller.abort()
-  }, [after, reload, revision, archived, onRead, onUnauthorized])
-  useEffect(() => {
-    if (visible && state.status !== 'loading' && focusNext.current) {
-      heading.current?.focus()
-      focusNext.current = false
-    }
-  }, [visible, state.status])
-  function refresh() {
-    focusNext.current = true
-    setState({ status: 'loading' })
-    setCursors([null])
-    setReload((value) => value + 1)
-  }
+  const load = useCallback(
+    (cursor: string | null, signal: AbortSignal) =>
+      loadChildren(cursor, signal, archived),
+    [archived]
+  )
+  const { state, heading, page, refresh, previousPage, nextPage, reset } =
+    useCursorDirectory({ revision, visible, load: load, onRead, onUnauthorized })
   return (
     <section className="care-panel" aria-labelledby="children-directory-title">
       <div className="care-section-heading">
@@ -95,9 +56,7 @@ export function ChildDirectory({
               name="children-archive-filter"
               checked={archived === value}
               onChange={() => {
-                setCursors([null])
-                setState({ status: 'loading' })
-                focusNext.current = true
+                reset(false)
                 onArchivedChange(value)
               }}
             />
@@ -164,27 +123,16 @@ export function ChildDirectory({
           <nav className="care-pagination" aria-label="Páginas de crianças">
             <button
               className="secondary-button"
-              disabled={busy || cursors.length === 1}
-              onClick={() => {
-                focusNext.current = true
-                setState({ status: 'loading' })
-                setCursors((value) => value.slice(0, -1))
-              }}
+              disabled={busy || page === 1}
+              onClick={previousPage}
             >
               Página anterior
             </button>
-            <span>Página {cursors.length}</span>
+            <span>Página {page}</span>
             <button
               className="secondary-button"
               disabled={busy || !state.page.nextCursor}
-              onClick={() => {
-                const next = state.page.nextCursor
-                if (next) {
-                  focusNext.current = true
-                  setState({ status: 'loading' })
-                  setCursors((value) => [...value, next])
-                }
-              }}
+              onClick={nextPage}
             >
               Próxima página
             </button>

@@ -4,6 +4,7 @@ export function childRevision(
   view: Omit<ChildView, 'revision'>,
   childUpdatedAt: string,
   accountUpdatedAt: string,
+  photoFileId: string | null,
 ): string {
   return createHash('sha256')
     .update(
@@ -20,6 +21,7 @@ export function childRevision(
         view.notes,
         childUpdatedAt,
         accountUpdatedAt,
+        photoFileId,
       ]),
     )
     .digest('hex');

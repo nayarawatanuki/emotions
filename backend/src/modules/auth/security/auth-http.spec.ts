@@ -17,7 +17,7 @@ function request(headers: Request['headers']): Request {
   return {
     headers,
     secure: false,
-    is: (type: string) => type === 'application/json',
+    is: (types: string[]) => types.includes('application/json'),
   } as unknown as Request;
 }
 describe('authentication HTTP boundary', () => {

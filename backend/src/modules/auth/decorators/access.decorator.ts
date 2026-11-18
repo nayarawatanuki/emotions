@@ -6,3 +6,7 @@ export const ALLOWED_ROLES = Symbol('ALLOWED_ROLES');
 export const PublicRoute = () => SetMetadata(PUBLIC_ROUTE, true);
 export const AllowedRoles = (...roles: AdultRole[]) =>
   SetMetadata(ALLOWED_ROLES, roles);
+
+export const WRITE_MEDIA_TYPES = Symbol('WRITE_MEDIA_TYPES');
+export const WriteMediaTypes = (...types: string[]) =>
+  SetMetadata(WRITE_MEDIA_TYPES, types);

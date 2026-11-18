@@ -1,3 +1,4 @@
+import { uploadImageMediaTypes } from '../../files/services/image-policy.js';
 import { parseUpdateChildInput } from '../dto/update-child-input.js';
 import {
   Body,
@@ -8,15 +9,20 @@ import {
   ParseUUIDPipe,
   Post,
   Patch,
+  Put,
   Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AllowedRoles } from '../../auth/decorators/access.decorator.js';
+import {
+  AllowedRoles,
+  WriteMediaTypes,
+} from '../../auth/decorators/access.decorator.js';
 import type {
   AuthenticatedRequest,
   SessionContext,
 } from '../../auth/auth.types.js';
+import { ChildPhotoUploadService } from '../services/child-photo-upload.service.js';
 import { ChildrenService } from '../services/children.service.js';
 import { parseCreateChildInput } from '../dto/create-child-input.js';
 import { parseChildDirectoryQuery } from '../dto/child-directory-query.js';
@@ -30,6 +36,8 @@ function context(request: AuthenticatedRequest): SessionContext {
 @AllowedRoles('professional')
 export class ChildrenController {
   constructor(
+    @Inject(ChildPhotoUploadService)
+    private readonly photos: ChildPhotoUploadService,
     @Inject(ChildrenService) private readonly children: ChildrenService,
   ) {}
   @Get() list(
@@ -61,6 +69,14 @@ export class ChildrenController {
       id,
       parseUpdateChildInput(body),
     );
+  }
+  @Put(':id/photo')
+  @WriteMediaTypes(...uploadImageMediaTypes)
+  uploadPhoto(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<ChildView> {
+    return this.photos.upload(context(request), id, request);
   }
   @Patch(':id/archive') archive(
     @Req() request: AuthenticatedRequest,

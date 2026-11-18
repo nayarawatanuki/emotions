@@ -24,6 +24,8 @@ import type {
   ChildView,
   ChildDirectory,
 } from '../dto/child-view.js';
+import { StoredFileEntity } from '../../files/entities/stored-file.entity.js';
+import type { StoredFile } from '../../files/entities/stored-file.entity.js';
 import { requireChildOwner } from './professional-access.js';
 
 type SummaryRow = Omit<ChildSummary, 'archived' | 'treatmentActive'> & {
@@ -32,6 +34,7 @@ type SummaryRow = Omit<ChildSummary, 'archived' | 'treatmentActive'> & {
 };
 type DetailRow = SummaryRow &
   Pick<ChildView, 'guardianName' | 'reportedLevel' | 'notes'> & {
+    photoFileId: string | null;
     childUpdatedAt: string;
     accountUpdatedAt: string;
   };
@@ -97,6 +100,7 @@ export class ChildrenService {
       .addSelect('child.guardianName', 'guardianName')
       .addSelect('child.reportedLevel', 'reportedLevel')
       .addSelect('child.notes', 'notes')
+      .addSelect('child.photoFileId', 'photoFileId')
       .addSelect(
         "DATE_FORMAT(child.updatedAt, '%Y-%m-%d %H:%i:%s.%f')",
         'childUpdatedAt',
@@ -117,7 +121,12 @@ export class ChildrenService {
     };
     return {
       ...view,
-      revision: childRevision(view, row.childUpdatedAt, row.accountUpdatedAt),
+      revision: childRevision(
+        view,
+        row.childUpdatedAt,
+        row.accountUpdatedAt,
+        row.photoFileId,
+      ),
     };
   }
   async create(
@@ -252,6 +261,43 @@ export class ChildrenService {
           archivedAt: input.archived ? now : null,
           updatedAt: now,
         });
+        return this.detail(context, id, manager);
+      },
+    );
+  }
+
+  async associatePhoto(
+    context: SessionContext,
+    id: string,
+    revision: string,
+    file: Pick<StoredFile, 'id' | 'storageKey' | 'mediaType' | 'sizeBytes'>,
+  ): Promise<ChildView> {
+    return this.withOwnedChild(
+      context,
+      id,
+      revision,
+      async (manager, child, _account, now) => {
+        if (child.archivedAt !== null) throw new ConflictException();
+        const files = manager.getRepository(StoredFileEntity);
+        await files.insert({
+          ...file,
+          professionalId: child.professionalId,
+          originalName: null,
+          alternativeText: null,
+          archivedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await manager.getRepository(ChildEntity).update(child.id, {
+          photoFileId: file.id,
+          updatedAt: now,
+        });
+        if (child.photoFileId) {
+          await files.update(
+            { id: child.photoFileId, professionalId: child.professionalId },
+            { archivedAt: now, updatedAt: now },
+          );
+        }
         return this.detail(context, id, manager);
       },
     );

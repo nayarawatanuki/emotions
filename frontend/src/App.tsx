@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router'
 import { Home } from './pages/Home/Home'
 import { Login } from './pages/Login/Login'
 import { ActivateAccount } from './pages/ActivateAccount/ActivateAccount'
-import { Workspace } from './pages/Workspace/Workspace'
 import { NotFound } from './pages/NotFound/NotFound'
+
+const Workspace = lazy(() =>
+  import('./pages/Workspace/Workspace').then(({ Workspace }) => ({
+    default: Workspace
+  }))
+)
 
 export default function App({
   initialActivationToken
@@ -28,7 +33,8 @@ export default function App({
               : 'Página não encontrada — Emotions'
 
     if (previousPath.current !== pathname) {
-      document.getElementById('conteudo')?.focus()
+      if (pathname !== '/workspace')
+        document.getElementById('conteudo')?.focus()
       previousPath.current = pathname
     }
   }, [pathname])
@@ -46,7 +52,14 @@ export default function App({
           />
         }
       />
-      <Route path="/workspace" element={<Workspace />} />
+      <Route
+        path="/workspace"
+        element={
+          <Suspense fallback={<output>Carregando seu espaço…</output>}>
+            <Workspace />
+          </Suspense>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

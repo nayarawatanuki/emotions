@@ -1,16 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCursorDirectory } from '../../features/directory/useCursorDirectory'
 import {
   loadProfessionals,
-  type DirectoryPage,
   type ProfessionalSummary
 } from '../../features/professionals/professionals-api'
 import { professionalStatusLabels } from '../../features/professionals/professional-input'
-import { ApiError } from '../../services/api'
-
-type DirectoryState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; page: DirectoryPage }
 
 export function ProfessionalDirectory({
   revision,
@@ -27,48 +20,8 @@ export function ProfessionalDirectory({
   onUnauthorized: () => void
   onRead: () => void
 }) {
-  const heading = useRef<HTMLHeadingElement>(null)
-  const focusNext = useRef(false)
-  const [cursors, setCursors] = useState<(string | null)[]>([null])
-  const [reload, setReload] = useState(0)
-  const [state, setState] = useState<DirectoryState>({ status: 'loading' })
-  const [previousRevision, setPreviousRevision] = useState(revision)
-  // A completed registration/reissue starts a fresh traversal, without retaining old pages.
-  if (previousRevision !== revision) {
-    setPreviousRevision(revision)
-    setCursors([null])
-    setState({ status: 'loading' })
-  }
-  const cursor = cursors.at(-1) ?? null
-  useEffect(() => {
-    const controller = new AbortController()
-    loadProfessionals(cursor, controller.signal)
-      .then((page) => {
-        if (!controller.signal.aborted) {
-          setState({ status: 'ready', page })
-          onRead()
-        }
-      })
-      .catch((failure) => {
-        if (controller.signal.aborted) return
-        if (failure instanceof ApiError && [401, 403].includes(failure.status))
-          onUnauthorized()
-        else setState({ status: 'error' })
-      })
-    return () => controller.abort()
-  }, [cursor, reload, revision, onUnauthorized, onRead])
-  useEffect(() => {
-    if (visible && state.status !== 'loading' && focusNext.current) {
-      heading.current?.focus()
-      focusNext.current = false
-    }
-  }, [visible, state.status])
-  function refresh() {
-    focusNext.current = true
-    setState({ status: 'loading' })
-    setCursors([null])
-    setReload((value) => value + 1)
-  }
+  const { state, heading, page, refresh, previousPage, nextPage } =
+    useCursorDirectory({ revision, visible, load: loadProfessionals, onRead, onUnauthorized })
   return (
     <section
       className="admin-panel"
@@ -156,27 +109,16 @@ export function ProfessionalDirectory({
           >
             <button
               className="secondary-button"
-              disabled={busy || cursors.length === 1}
-              onClick={() => {
-                focusNext.current = true
-                setState({ status: 'loading' })
-                setCursors((value) => value.slice(0, -1))
-              }}
+              disabled={busy || page === 1}
+              onClick={previousPage}
             >
               Página anterior
             </button>
-            <span>Página {cursors.length}</span>
+            <span>Página {page}</span>
             <button
               className="secondary-button"
               disabled={busy || !state.page.nextCursor}
-              onClick={() => {
-                const next = state.page.nextCursor
-                if (next) {
-                  focusNext.current = true
-                  setState({ status: 'loading' })
-                  setCursors((value) => [...value, next])
-                }
-              }}
+              onClick={nextPage}
             >
               Próxima página
             </button>

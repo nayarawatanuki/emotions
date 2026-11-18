@@ -10,7 +10,11 @@ import type { Response } from 'express';
 import { AUTH_ENVIRONMENT } from '../../../config/auth-environment.js';
 import type { AuthEnvironment } from '../../../config/auth-environment.js';
 import type { AdultRole, AuthenticatedRequest } from '../auth.types.js';
-import { PUBLIC_ROUTE, ALLOWED_ROLES } from '../decorators/access.decorator.js';
+import {
+  PUBLIC_ROUTE,
+  ALLOWED_ROLES,
+  WRITE_MEDIA_TYPES,
+} from '../decorators/access.decorator.js';
 import { AuthSessionService } from '../services/auth-session.service.js';
 import {
   assertAuthOrigin,
@@ -39,7 +43,11 @@ export class AuthAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
     const writing = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
-    assertAuthOrigin(request, this.environment, writing);
+    const mediaTypes = this.reflector.getAllAndOverride<string[]>(
+      WRITE_MEDIA_TYPES,
+      targets,
+    );
+    assertAuthOrigin(request, this.environment, writing, mediaTypes);
     try {
       const token = readSessionCookie(request, this.environment.cookieName);
       if (!token) throw new UnauthorizedException();

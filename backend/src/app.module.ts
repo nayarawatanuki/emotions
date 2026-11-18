@@ -19,16 +19,17 @@ export class AppModule {
     const imageStorage = readImageStorageEnvironment(source);
     const auth = readAuthEnvironment(source);
     const authentication = auth ? AuthModule.register(auth) : null;
+    const files = imageStorage ? FilesModule.registerLocal(imageStorage) : null;
     return {
       module: AppModule,
       imports: [
-        ...(imageStorage ? [FilesModule.registerLocal(imageStorage)] : []),
+        ...(!authentication && files ? [files] : []),
         ...(database ? [DatabaseModule.register(database)] : []),
         ...(authentication
           ? [
               authentication,
               ProfessionalsModule.register(authentication),
-              ChildrenModule,
+              ChildrenModule.register(files),
             ]
           : []),
       ],

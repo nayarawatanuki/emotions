@@ -199,3 +199,26 @@ armazenamento de produção e acesso infantil continuam decisões próprias.
 - [Construtor e limites](https://sharp.pixelplumbing.com/api-constructor/).
 - [Saída e metadados](https://sharp.pixelplumbing.com/api-output/).
 - [Aviso de segurança do picomatch](https://github.com/advisories/GHSA-fc5q-39xc-vjpf).
+
+## 🌷 Upload protegido da foto da ficha
+
+Com autenticação e armazenamento local configurados, o profissional responsável
+pode enviar JPEG, PNG ou WebP estático em `PUT /children/:id/photo`. O cliente
+envia os bytes diretamente, o `Content-Type` correspondente e o `If-Match` com
+a revisão da ficha entre aspas. A requisição usa os mesmos cabeçalhos de origem
+e CSRF das outras alterações da ficha.
+
+A API verifica a sessão, o papel, a revisão e a propriedade antes de ler a
+imagem. O limite de entrada é de 5 MiB e o corpo comprimido é recusado.
+A leitura tem prazo de 15 segundos. Cada processo aceita dois uploads
+simultâneos e seis tentativas por conta profissional por minuto. O armazenamento local só pode ser habilitado fora
+de produção.
+
+O WebP normalizado é gravado em disco. A mesma transação registra o arquivo e
+atualiza a ficha. Em substituições, a transação arquiva o registro anterior.
+Se a associação falhar, o arquivo novo é removido quando o banco confirma a
+ausência do registro. A resposta traz a ficha e sua nova revisão.
+
+A entrega autorizada da foto, a interface acessível e a política de retenção
+continuam pendentes. A reconciliação deve cobrir arquivos de operações
+interrompidas e os arquivos arquivados por substituição.

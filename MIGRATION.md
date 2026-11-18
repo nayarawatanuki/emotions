@@ -480,6 +480,28 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   armazenamento de produção seguem pendentes.
   [Configuração e próximos passos](docs/architecture/image-processing.md#-armazenamento-privado-local)
 
+### 🌷 Upload protegido da foto — implementado para revisão
+
+- A API recebe JPEG, PNG ou WebP em `PUT /children/:id/photo` com sessão
+  profissional, origem, CSRF e revisão da ficha. O armazenamento local precisa
+  estar habilitado.
+- A imagem é normalizada antes da gravação privada. A transação vincula o novo
+  arquivo à ficha e arquiva o registro anterior quando há substituição.
+- A verificação usa dados sintéticos e rollback no MySQL local. Entrega
+  autorizada, interface, retenção e reconciliação continuam pendentes.
+  [Contrato e limites](docs/architecture/image-processing.md#-upload-protegido-da-foto-da-ficha)
+
+### 🧹 Revisão de qualidade
+
+- Paginação, atualização e cancelamento de requisições foram compartilhados
+  entre os diretórios. O filtro de fichas mantém o foco no controle.
+- A leitura do upload tem prazo de 15 segundos. A auditoria Yarn reportou zero
+  ocorrências conhecidas nas duas árvores de dependências.
+- O Chrome confirmou o redirecionamento ao login sem sessão. A verificação com
+  leitor de tela dos fluxos autenticados segue pendente.
+- O build separa a área autenticada em outro bundle. O JavaScript inicial passou
+  de 94,34 para 87,56 kB gzip. A medição de latência em dispositivos segue pendente.
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

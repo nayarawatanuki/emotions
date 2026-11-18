@@ -13,6 +13,7 @@ export function assertAuthOrigin(
   request: Request,
   environment: AuthEnvironment,
   writing: boolean,
+  mediaTypes: string[] = ['application/json'],
 ): void {
   const origin = request.headers.origin;
   const site = request.headers['sec-fetch-site'];
@@ -28,8 +29,7 @@ export function assertAuthOrigin(
       request.headers['x-emotions-request'] !== '1'
     )
       throw new ForbiddenException();
-    if (!request.is('application/json'))
-      throw new UnsupportedMediaTypeException();
+    if (!request.is(mediaTypes)) throw new UnsupportedMediaTypeException();
   }
 }
 

@@ -1,3 +1,7 @@
+import { mkdtemp, readdir, realpath, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import sharp from 'sharp';
 import { StoredFileEntity } from '../src/modules/files/entities/stored-file.entity.js';
 import { ActivityEntity } from '../src/modules/activities/entities/activity.entity.js';
 import { ActivityOptionEntity } from '../src/modules/activities/entities/activity-option.entity.js';
@@ -60,6 +64,7 @@ describe('child records isolated by professional on real MySQL with rollback', (
     firstSession: string;
   let tokens: { first: string; second: string; admin: string };
   let verifiedEmpty = false;
+  let imageDirectory: string;
   async function assertEmpty() {
     for (const metadata of source.entityMetadatas)
       expect(
@@ -82,6 +87,9 @@ describe('child records isolated by professional on real MySQL with rollback', (
     hash = await new PasswordService().hash(
       'Synthetic children fixture phrase 🎀',
     );
+    imageDirectory = await mkdtemp(
+      join(await realpath(tmpdir()), 'emotions-photos-'),
+    );
     const fixture = await Test.createTestingModule({
       imports: [
         AppModule.register({
@@ -90,6 +98,7 @@ describe('child records isolated by professional on real MySQL with rollback', (
           AUTH_ENABLED: 'true',
           AUTH_ORIGIN: origin,
           AUTH_SECRET: secret,
+          IMAGE_STORAGE_DIRECTORY: imageDirectory,
         }),
       ],
     })
@@ -200,6 +209,8 @@ describe('child records isolated by professional on real MySQL with rollback', (
     } finally {
       if (app) await app.close();
       if (source?.isInitialized) await source.destroy();
+      if (imageDirectory)
+        await rm(imageDirectory, { recursive: true, force: true });
     }
   });
   function post(token = tokens.first) {
@@ -221,6 +232,75 @@ describe('child records isolated by professional on real MySQL with rollback', (
       .expect(201);
     return response.body as ChildView;
   }
+  it('authorizes, bounds and atomically associates a private normalized photo', async () => {
+    const child = await create();
+    const url = `/children/${child.id}/photo`;
+    const png = await sharp({
+      create: { width: 2, height: 2, channels: 3, background: '#abc' },
+    })
+      .png()
+      .toBuffer();
+    function upload(token = tokens.first, revision = child.revision) {
+      return request(app.getHttpServer())
+        .put(url)
+        .set('Cookie', `emotions_session_local=${token}`)
+        .set('Origin', origin)
+        .set('X-Emotions-Request', '1')
+        .set('X-CSRF-Token', csrfToken(secret, token))
+        .set('If-Match', `"${revision}"`)
+        .set('Content-Type', 'image/png');
+    }
+    await upload().set('Cookie', '').send(png).expect(401);
+    await upload().set('X-CSRF-Token', 'invalid').send(png).expect(403);
+    await upload(tokens.second).send(png).expect(404);
+    await upload()
+      .send(Buffer.alloc(5 * 1024 * 1024 + 1))
+      .expect(413);
+    await upload().send(Buffer.from('invalid')).expect(415);
+    expect(await readdir(imageDirectory)).toEqual([]);
+
+    const response = await upload().send(png).expect(200);
+    const updated = response.body as ChildView;
+    expect(updated.revision).not.toBe(child.revision);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(JSON.stringify(updated)).not.toMatch(/photoFileId|storageKey/);
+    const record = await runner.manager
+      .getRepository(ChildEntity)
+      .findOneByOrFail({ id: child.id });
+    const file = await runner.manager
+      .getRepository(StoredFileEntity)
+      .findOneByOrFail({
+        id: record.photoFileId!,
+        professionalId: firstProfile,
+      });
+    expect(file).toMatchObject({
+      mediaType: 'image/webp',
+      originalName: null,
+      archivedAt: null,
+    });
+    expect(await readdir(imageDirectory)).toEqual([
+      expect.stringMatching(/\.webp$/u),
+    ]);
+    await upload().send(png).expect(409);
+    await upload(tokens.first, updated.revision).send(png).expect(200);
+    expect(
+      (
+        await runner.manager
+          .getRepository(StoredFileEntity)
+          .findOneByOrFail({ id: file.id })
+      ).archivedAt,
+    ).not.toBeNull();
+    const filesBeforeFailure = await readdir(imageDirectory);
+    const replacement = await get(`/children/${child.id}`).expect(200);
+    vi.spyOn(app.get(ChildrenService), 'associatePhoto').mockRejectedValueOnce(
+      new Error('Synthetic association failure'),
+    );
+    await upload(tokens.first, (replacement.body as ChildView).revision)
+      .send(png)
+      .expect(500);
+    expect(await readdir(imageDirectory)).toEqual(filesBeforeFailure);
+    await upload().send(png).expect(429);
+  });
   it('creates identity and child atomically with owner from session, civil date and no password', async () => {
     const response = await post().send(input).expect(201);
     const result = response.body as ChildView;

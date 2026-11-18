@@ -8,3 +8,5 @@ export const imagePolicy = Object.freeze({
   maxConcurrent: 2,
   timeoutSeconds: 5,
 });
+
+export const uploadImageMediaTypes = ['image/jpeg', 'image/png', 'image/webp'];

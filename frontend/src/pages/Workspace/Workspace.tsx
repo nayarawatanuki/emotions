@@ -1,6 +1,6 @@
 import { ProfessionalCare } from '../ProfessionalCare/ProfessionalCare'
 import './Workspace.css'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { AccessLayout } from '../../components/AccessLayout/AccessLayout'
 import { logout } from '../../features/auth/auth-api'
@@ -14,6 +14,9 @@ export function Workspace() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  useEffect(() => {
+    document.getElementById('conteudo')?.focus()
+  }, [])
   const changeBusy = useCallback((value: boolean) => {
     pending.current = value
     setBusy(value)
