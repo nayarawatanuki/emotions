@@ -1,4 +1,6 @@
-import { DataSource, MigrationExecutor } from 'typeorm';
+import { ExplicitMetadataDataSource } from './explicit-metadata-data-source.js';
+import { MigrationExecutor } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import type { QueryRunner } from 'typeorm';
 import { createMigrationOptions } from './migration-options.js';
 import { acquireMigrationLock, migrationLockName } from './migration-lock.js';
@@ -7,7 +9,9 @@ let dataSource: DataSource | undefined;
 let queryRunner: QueryRunner | undefined;
 let locked = false;
 try {
-  dataSource = new DataSource(createMigrationOptions(process.env));
+  dataSource = new ExplicitMetadataDataSource(
+    createMigrationOptions(process.env),
+  );
   await dataSource.initialize();
   queryRunner = dataSource.createQueryRunner();
   await queryRunner.connect();

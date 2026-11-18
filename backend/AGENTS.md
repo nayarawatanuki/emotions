@@ -58,3 +58,31 @@ técnicas, sem dados reais. O ALTER temporário em accounts foi revogado.
 A entrega de links pelo ADM e os prazos de ativação (24 h) e recuperação (30 min) foram aprovados.
 As migrations usam credenciais separadas das da API e exigem execução explícita.
 Não habilitar a conexão ou provisionar bancos sem autorização específica.
+
+## Processamento de imagens — implementado e validado
+
+Sharp 0.35.5 foi aprovado e instalado como dependência exata. O serviço isolado
+ImageProcessorService valida/reprocessa bytes em memória, com limites, sem acessar
+banco, caminhos ou URLs. Não há módulo/endpoint de upload, armazenamento privado
+ou associação de foto implementados ainda. Manter uma instância singleton quando
+integrar: a capacidade é por instância, não distribuída entre processos.
+Auditoria de 17/11/2026 encontrou GHSA-fc5q-39xc-vjpf em picomatch 4.0.7, já presente
+no lockfile anterior: 4 caminhos na auditoria completa; 1 no recorte de produção
+(TypeORM → tinyglobby). O aviso informa ausência de versão corrigida. A pendência
+não está resolvida nem deve ser omitida ou tratada como prova de segurança.
+O ensaio sem banco de descoberta de metadados da API/migrations não chamou glob;
+isso não cobre todo o runtime. Frontend também reportou 2 caminhos via Vite.
+Versão oficial conferida ainda 4.0.7; nenhum downgrade, fork, ignore ou aceite
+para produção foi aplicado. A desenvolvedora autorizou continuidade com advertência
+e mitigação; a vulnerabilidade permanece aberta.
+
+## Mitigação do picomatch — implementada e validada
+
+Usar ExplicitMetadataDataSource nos pontos de inicialização da aplicação e CLI:
+recusa entidades/migrations/subscribers por caminhos ou padrões antes da conexão
+e antes de montar metadados. Não introduzir DataSource paralelo sem revisar essa
+proteção. Isso não corrige picomatch nem substitui autorização por proprietário.
+Vite dev/preview são limitados a loopback, com CORS desativado e checagem da
+configuração resolvida, inclusive CLI. Advertência e decisão temporária em
+`../docs/security/picomatch.md`; não ocultar o aviso de auditoria. Reavaliar antes
+de implantação e nas auditorias de novas etapas; não há monitor automático.

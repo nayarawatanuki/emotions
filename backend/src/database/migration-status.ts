@@ -1,4 +1,5 @@
-import { DataSource } from 'typeorm';
+import { ExplicitMetadataDataSource } from './explicit-metadata-data-source.js';
+import type { DataSource } from 'typeorm';
 import { readDatabaseEnvironment } from '../config/database-environment.js';
 import { createDatabaseOptions } from './database-options.js';
 import {
@@ -10,7 +11,9 @@ let dataSource: DataSource | undefined;
 try {
   const environment = readDatabaseEnvironment(process.env);
   if (!environment) throw new Error();
-  dataSource = new DataSource(createDatabaseOptions(environment));
+  dataSource = new ExplicitMetadataDataSource(
+    createDatabaseOptions(environment),
+  );
   await dataSource.initialize();
   const tables = await dataSource.query<{ total: string }[]>(
     'SELECT COUNT(*) AS total FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',

@@ -339,7 +339,7 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   e 377 do backend. Doze tabelas vazias, três migrations e esquema preservados.
 - Arquivamento, fotos, acesso infantil e histórico de alterações seguem pendentes.
 
-## Arquivamento reversível de crianças — implementado, em revisão
+## Arquivamento reversível de crianças — concluído (`e86798092`)
 
 - Aprovação da desenvolvedora: arquivar/desarquivar pelo profissional responsável,
   confirmação explícita, consulta preservada e nenhuma exclusão física.
@@ -368,6 +368,59 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Histórico de mudanças, retenção/exclusão definitiva, transferência, fotos e
   acesso infantil completo continuam em etapas próprias. Os futuros serviços
   infantis também deverão conferir `archived_at` dentro de suas transações.
+
+## Processamento de imagens — concluído (`68b3aee00`, 17/11/2026)
+
+- Aprovação explícita para instalar `sharp@0.35.5`; versão exata e lockfile
+  preservando as versões anteriores. Novas entradas incluem binários opcionais
+  de plataformas diferentes, sem instalação de todos eles neste Mac.
+- Serviço isolado de normalização em memória, sem banco/HTTP/armazenamento:
+  JPEG/PNG/WebP estáticos, limites de bytes/pixels/lado, orientação aplicada,
+  saída WebP sem metadados, proporção/transparência e ausência de ampliação.
+- Até dois trabalhos por instância, sem fila; timeout nativo de processamento.
+  Arquivos inválidos não expõem mensagens internas e liberam a capacidade.
+- Tipos/lint/build, 287 testes unitários e 12 HTTP aprovados; 22 casos de imagem
+  usam o decodificador instalado e dados sintéticos, incluindo saída excessiva,
+  animações, truncamento, orientação, metadados e falha nativa simulada.
+- Chrome: PNG e WebP sintéticos comparados, com proporção e transparência.
+- Auditoria completa: 4 ocorrências altas em 408 pacotes, todas do mesmo aviso
+  GHSA-fc5q-39xc-vjpf do picomatch 4.0.7. O recorte de produção encontra 1 caminho
+  em 161 pacotes (TypeORM → tinyglobby → picomatch). A versão já estava no lockfile
+  antes do Sharp; o aviso atualizado hoje não informa versão corrigida.
+- Ensaio sem banco confirmou ausência de glob na montagem atual de metadados da
+  API/migrations, com controle positivo instrumentado. Isso não cobre todo o runtime.
+- Auditoria do frontend: 2 ocorrências altas do mesmo picomatch, via Vite, entre
+  93 pacotes. Não houve alteração de dependências do frontend.
+- Pendência de segurança permanece aberta; não declarar auditoria aprovada/zero.
+  Nenhuma atualização adicional, patch vendorizado ou exceção foi aplicada.
+- Sem upload exposto, armazenamento privado, foto na ficha ou acesso infantil.
+  Esses fluxos continuam pendentes. Nenhuma mudança em dados/migrations ou `_old`.
+- Contrato, risco residual e próximos passos em `docs/architecture/image-processing.md`.
+
+## Mitigação do picomatch — concluída (17/11/2026)
+
+- Desenvolvedora autorizou manter o pacote com advertência e aplicar proteções.
+  Isso não é aceite para produção clínica ou declaração de auditoria aprovada.
+- ExplicitMetadataDataSource recusa entidades/migrations/subscribers por caminhos
+  ou padrões antes da conexão e da montagem de metadados. API, status/execução de
+  migrations e primeiro ADM usam a classe; nenhuma migration foi executada.
+- Vite dev/preview exigem loopback e CORS desativado na configuração resolvida;
+  overrides públicos da CLI foram recusados antes de abrir os servidores.
+- Backend: 294 unitários, 134 MySQL, 12 HTTP, tipos/lint/build aprovados.
+- Frontend: 52 testes nativos, 1 integração real, lint/build aprovados.
+- Total conjunto com o processador de imagens: 493 testes. O caso de saída
+  excessiva usa ruído sintético menor e prazo de teste próprio para incluir sua
+  geração; timeout de processamento e limites de produção não foram alterados.
+- Chrome: página inicial e login carregaram normalmente pelo Vite restrito.
+- Pós-teste: 12 tabelas vazias, 3 migrations e zero divergência de esquema.
+- Advertência aberta: auditorias completas backend 4 altas/408 pacotes e frontend
+  2 altas/93; recorte de produção backend 1 alta/161. Mesmo aviso, vários caminhos.
+- Sem dependência adicional além do Sharp aprovado, sem ignore/fork/patch de vendor.
+- Escopo, autorização, limites e revisão futura em `docs/security/picomatch.md`.
+- Por solicitação da desenvolvedora, cada commit exige atualização do Garden,
+  com links nos checks concluídos, tabela de entregas e cards correspondentes.
+  Regra registrada em `.codex/agents.md`; acompanhamento em
+  https://github.com/nayarawatanuki/emotions/issues/2.
 
 ## Critérios de validação
 

@@ -133,6 +133,17 @@ Ao finalizar uma etapa, apresentar:
 - Pendências, caso existam.
 - Sugestão de mensagem de commit seguindo Conventional Commits, quando apropriado.
 
+### Garden e visibilidade do progresso — obrigatório em cada commit
+
+- Em cada commit aprovado, atualizar o acompanhamento do Emotions no My Golden Code Garden e na issue `nayarawatanuki/emotions#2`.
+- Após commit e push, incluir o link do commit, a entrega, a validação realizada e as pendências/riscos; ajustar checklists, tarefas e descrição ao estado real.
+- Em cada check concluído, mencionar e vincular diretamente o(s) commit(s) correspondente(s); quando a tarefa abranger vários commits, listar todos os relevantes. Não inventar vínculo nem marcar tarefa pendente como entregue.
+- Manter o padrão existente do Garden: títulos/identidade visual preservados, texto em inglês na issue e etapas claras. A issue geral continua em andamento enquanto a migração não estiver concluída; concluir apenas tarefas efetivamente entregues e validadas.
+- Atualizar também os cards correspondentes no Garden, com descrição, commits e status coerentes. Usar tabela de entregas quando facilitar a leitura, preservando o estilo visual existente.
+- Não tratar push como conclusão do processo: verificar também se a atualização do Garden foi salva e aparece na página.
+- Se faltar autenticação ou acesso, preparar a atualização, informar a limitação e pedir o acesso necessário. Nunca afirmar que o Garden foi atualizado sem observar o resultado salvo.
+- Apresentar à desenvolvedora os links dos commits e do acompanhamento atualizado ao encerrar a etapa. Não trocar de branch nem alterar a exigência de aprovação dos commits.
+
 **Não iniciar automaticamente a próxima etapa. Aguardar aprovação.**
 
 ---

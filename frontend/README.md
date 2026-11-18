@@ -202,3 +202,14 @@ acompanhamento informado. A conta infantil desta fase continua sem login.
 Erro ou resultado incerto não repete escrita: Consultar ficha atual lê o estado
 atual antes de permitir uma nova confirmação. A integração disputa edição e
 arquivamento com a mesma revisão: somente uma gravação é aceita.
+
+## Desenvolvimento local e advertência do picomatch
+
+Vite dev e preview ficam restritos a 127.0.0.1/localhost/::1, com CORS desativado.
+A configuração resolvida é verificada: `--host 0.0.0.0`, `--host ::`, host booleano
+ou CORS aberto encerram a inicialização. Os comandos habituais com Yarn e o proxy
+de mesma origem continuam disponíveis. Dev/preview não são servidores de produção.
+
+Há duas ocorrências altas do mesmo aviso do picomatch na auditoria atual via Vite.
+A desenvolvedora autorizou continuidade com advertência e mitigação; o aviso não
+foi corrigido, ignorado ou removido. Confira [risco residual e revisão](../docs/security/picomatch.md).

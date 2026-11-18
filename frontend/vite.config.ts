@@ -1,3 +1,4 @@
+import { localDevelopmentOnly } from './config/local-development.ts'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
@@ -16,7 +17,19 @@ const proxy = {
 }
 
 export default defineConfig({
-  plugins: [react()],
-  server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy },
-  preview: { host: '127.0.0.1', port: 4173, strictPort: true, proxy }
+  plugins: [react(), localDevelopmentOnly()],
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+    cors: false,
+    proxy
+  },
+  preview: {
+    host: '127.0.0.1',
+    port: 4173,
+    strictPort: true,
+    cors: false,
+    proxy
+  }
 })

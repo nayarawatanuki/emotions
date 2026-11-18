@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { ExplicitMetadataDataSource } from '../../../database/explicit-metadata-data-source.js';
 import { readDatabaseEnvironment } from '../../../config/database-environment.js';
 import { readEnvironment } from '../../../config/environment.js';
 import { createDatabaseOptions } from '../../../database/database-options.js';
@@ -25,7 +25,9 @@ async function main(): Promise<void> {
       'Configure DB_ENABLED e a conexão da aplicação antes de continuar.',
     );
   const input = await readAdminInput(process.stdin, process.stdout);
-  const database = new DataSource(createDatabaseOptions(environment));
+  const database = new ExplicitMetadataDataSource(
+    createDatabaseOptions(environment),
+  );
   try {
     await database.initialize();
     const runner = database.createQueryRunner();

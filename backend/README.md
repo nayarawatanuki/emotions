@@ -475,3 +475,46 @@ Retenção, exclusão definitiva e trilha de eventos não fazem parte desta oper
 Os futuros serviços de acesso infantil devem verificar arquivamento antes de
 ativar credenciais ou permitir atividades. Tokens atuais são só de profissionais;
 nenhum mecanismo infantil de ativação ou recuperação é liberado nesta etapa.
+
+## Processamento de imagens — base isolada
+
+A inclusão de `sharp@0.35.5` foi aprovada. A versão está fixa no manifesto e no
+lockfile. `src/modules/files/services/image-processor.service.ts` recebe somente
+bytes, sem nome original, MIME declarado, URL ou caminho. Retorna bytes WebP e
+dimensões, sem acoplar a assinatura pública aos tipos do Sharp.
+
+Aceita JPEG, PNG e WebP estáticos; recusa SVG, GIF, animações e arquivos inválidos.
+A assinatura é conferida e o conteúdo é decodificado/reprocessado; assinatura ou
+extensão sozinhas não são aceitas como validação. Aplica orientação EXIF, mantém
+proporção/transparência, reduz até 2048 × 2048 sem ampliar e remove metadados.
+Entrada/saída limitadas a 5 MiB; entrada até 12 milhões de pixels e 8192 por lado.
+São permitidos dois trabalhos simultâneos por instância, sem fila; timeout nativo
+configurado em cinco segundos de processamento. Os limites não representam uma
+quota global de memória nem substituem limite HTTP, rate limit ou isolamento do
+processo. A futura integração deve manter um singleton e validar autenticação
+antes de receber/processar arquivos.
+
+Este incremento não registra o processador em rotas, não grava arquivos, não
+altera banco e não fornece upload ou acesso a fotos. Armazenamento privado,
+autorização de entrega e associação à ficha serão etapas seguintes.
+
+Validação local em Node 24.21.0/macOS ARM64: Sharp 0.35.5/libvips 8.18.7,
+287 testes unitários (22 de imagem), 12 HTTP, tipos/lint/build aprovados.
+O Chrome renderizou uma saída WebP sintética com transparência preservada.
+`yarn install --frozen-lockfile --offline` confirmou o estado instalado/lockfile
+como atual; isso não é teste de instalação limpa em outra plataforma.
+Não houve execução de testes MySQL nesta etapa nem alteração de esquema/dados.
+Confira [decisões, limites e pendência da auditoria](../docs/architecture/image-processing.md).
+
+## Advertência de dependência e mitigação
+
+A desenvolvedora autorizou manter temporariamente o picomatch com advertência.
+O aviso permanece aberto e a auditoria continua reportando ocorrências altas.
+`ExplicitMetadataDataSource` exige referências importadas e recusa descoberta por
+caminhos/padrões antes de conectar e antes de montar metadados. API e ferramentas
+de migrations/primeiro ADM usam essa inicialização. Não há mudança de banco.
+
+A configuração atual usa entidades/classes explícitas. Não trocar por glob nem
+introduzir inicialização paralela sem rever o controle e os testes. A mitigação
+não corrige a biblioteca nem prova ausência de exposição por todos os caminhos.
+Veja [advertência, evidências e manutenção](../docs/security/picomatch.md).
