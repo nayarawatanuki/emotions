@@ -464,6 +464,22 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   pendentes; foram implementadas e validadas na etapa de esquema completo acima.
   TLS remoto e serviços de persistência do domínio continuam pendentes.
 
+### 📁 Armazenamento privado local — implementado para revisão
+
+- Serviço interno de armazenamento de WebP normalizado, com configuração
+  opcional, diretório privado fora do projeto e gravação atômica.
+- Tipos, lint, build e 299 testes unitários aprovados. Os cinco novos casos
+  cobrem registro no Nest, gravação concorrente, leitura, remoção repetida,
+  limpeza após falha e rejeição de caminhos inseguros.
+- Os 12 testes HTTP foram bloqueados pela permissão de rede local (`EPERM`).
+  A etapa não possui rota ou interface para validar no Chrome.
+- O GitHub retirou o aviso GHSA-fc5q-39xc-vjpf em 18/11/2026. A nova
+  auditoria do Yarn foi bloqueada por resolução de DNS. As mitigações seguem
+  em vigor.
+- Upload autenticado, associação à ficha, reconciliação de órfãos e
+  armazenamento de produção seguem pendentes.
+  [Configuração e próximos passos](docs/architecture/image-processing.md#-armazenamento-privado-local)
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

@@ -155,15 +155,39 @@ antes de qualquer commit, o commit permanece pendente; não há atualização of
 verificada que possa ser instalada para satisfazer essa condição agora. Não foi
 criado ignore, filtro para esconder o aviso ou substituição não autorizada.
 
+## 📁 Armazenamento privado local
+
+O backend registra o serviço de arquivos quando `IMAGE_STORAGE_DIRECTORY` é
+preenchida. Para executar com fixtures sintéticas, crie um diretório local de
+modo `0700` com `mkdir -m 700` e informe seu caminho absoluto em `backend/.env`.
+Escolha um local fora do checkout, em uma área sob seu controle e que não seja
+publicada ou compartilhada. O diretório deve pertencer ao usuário do processo.
+Use o caminho físico (consulte `pwd -P` dentro do diretório). O backend recusa
+links simbólicos e a opção em produção.
+
+O serviço recebe a saída normalizada, gera uma chave UUID com extensão
+`.webp` e escreve em um temporário exclusivo com modo `0600`. Sincroniza e
+fecha o arquivo antes de renomeá-lo no mesmo diretório. Assim, a chave final
+aponta para um arquivo completo. Se uma operação falhar, o serviço tenta
+remover o temporário e comunica também eventual falha dessa limpeza.
+A leitura valida a chave e recusa links simbólicos. A remoção por chave pode
+ser repetida, inclusive quando o arquivo já não existe.
+
+Uma interrupção abrupta do processo pode deixar um temporário. A reconciliação
+desses arquivos e de objetos sem registro no banco fica para a integração de
+persistência. O serviço é interno ao backend. A futura rota deverá verificar
+autenticação e propriedade antes de consultar a chave ou entregar bytes.
+
 ## Etapas seguintes
 
-1. Manter a advertência e reavaliar a pendência de auditoria nas próximas etapas,
-   conforme decisão explícita da desenvolvedora, sem considerá-la resolvida.
-2. Implementar armazenamento privado, configuração e limpeza de falhas/órfãos.
-3. Receber upload somente após autenticação/origem/CSRF, com limites de corpo e taxa.
-4. Associar arquivos ao mesmo profissional em transação e entregar bytes após
-   autorização; evitar diretório público e URLs permanentes sem controle de acesso.
-5. Integrar a foto infantil e, depois, imagens de atividades/recompensas, com texto
+1. Manter as mitigações do picomatch. Em 18/11/2026, o GitHub marcou o
+   GHSA-fc5q-39xc-vjpf como retirado. A retirada não fornece uma versão
+   corrigida nem substitui uma auditoria do projeto. A nova consulta pelo Yarn
+   falhou na resolução do registry.
+2. Receber upload somente após autenticação/origem/CSRF, com limites de corpo e taxa.
+3. Associar arquivos ao mesmo profissional em transação e entregar bytes após
+   autorização, com limpeza quando a associação falhar e reconciliação de órfãos.
+4. Integrar a foto infantil e, depois, imagens de atividades/recompensas, com texto
    alternativo pertinente ao contexto e validação no Chrome.
 
 Cada incremento exige revisão e aprovação do commit. Retenção, backups,
