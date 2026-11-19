@@ -530,6 +530,14 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   armazenamento. Retenção e exclusão continuam pendentes de decisão.
   [Como executar](docs/architecture/image-processing.md#-conferência-local-do-armazenamento)
 
+### 🧪 Simulação de limpeza — implementada para revisão
+
+- `yarn files:inspect --simulate-cleanup` acrescenta contagens de temporários e
+  órfãos elegíveis após 24 horas, com base nos metadados locais do arquivo.
+- Registros existentes, ativos ou arquivados, ficam fora dos candidatos.
+  A simulação usa apenas leitura. A autorização de exclusão e a retenção
+  clínica continuam pendentes.
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

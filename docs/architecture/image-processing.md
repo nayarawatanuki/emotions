@@ -259,3 +259,30 @@ nomes conta como ausente. A verificação compara registros e nomes. Ela não
 valida o conteúdo do WebP, não mostra nomes ou chaves no relatório e não
 altera banco nem arquivos. Parar a API evita contar uma gravação em andamento
 como órfã. A retenção e qualquer exclusão exigem decisão própria.
+
+### 🧪 Simulação de limpeza
+
+Com a API parada, execute `yarn files:inspect --simulate-cleanup`. O relatório
+inclui `cleanupSimulation`, com os totais de temporários e arquivos sem registro
+que atingiram 24 horas desde a data mais recente de modificação do conteúdo ou
+alteração de metadados do arquivo. A margem de 24 horas é operacional para o
+ambiente local. A execução mantém os arquivos e o banco intactos.
+
+| Exemplo sintético | Resultado |
+| --- | --- |
+| Temporário de 2 horas | Contado na inspeção |
+| WebP sem registro de 30 horas | Contado como candidato na simulação |
+| Foto substituída com registro arquivado | Preservada, com o registro contado como arquivado |
+| Registro cuja foto sumiu do disco | Contado como ausente para investigação |
+
+Para eventual uso clínico, definir com a clínica a finalidade de cada foto,
+quem responde pela retenção, quem pode aprovar a exclusão e como validar a
+restauração do backup. O Einstein publica orientações para acesso ao prontuário.
+O Mass General Brigham divulga suas práticas de privacidade e inclui o McLean
+Hospital entre as organizações abrangidas. Essas referências orientam a
+governança do projeto. A política de retenção deve ser avaliada no contexto
+da clínica e do melhor interesse da criança.
+
+- [Portal de Privacidade e Proteção de Dados do Einstein](https://www.einstein.br/n/o-einstein/acesso-informacao/privacidade-protecao-dados)
+- [Aviso de privacidade e instituições abrangidas do Mass General Brigham](https://www.massgeneralbrigham.org/en/notices/hipaa)
+- [Enunciado da ANPD sobre dados de crianças e adolescentes](https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-divulga-enunciado-sobre-o-tratamento-de-dados-pessoais-de-criancas-e-adolescentes)
