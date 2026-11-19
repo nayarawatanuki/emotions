@@ -510,6 +510,18 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Interface, retenção e reconciliação continuam pendentes.
   [Contrato da leitura](docs/architecture/image-processing.md#-leitura-autorizada-da-foto)
 
+### 📸 Interface da foto da ficha — implementada para revisão
+
+- Seletor nativo com rótulo e instruções de formato e tamanho, visualização
+  privada e mensagens de progresso, sucesso e erro.
+- Conflito de revisão permite atualizar a ficha e repetir o envio com o
+  arquivo selecionado. A URL de visualização é revogada ao sair da ficha.
+- Frontend: 54 testes, lint e build aprovados. Upload e leitura com imagem
+  sintética passaram pelo proxy real. O Chrome mostrou o seletor, as
+  instruções e o WebP com texto alternativo.
+- A confirmação do envio pelo seletor nativo e a validação com leitor de
+  tela seguem pendentes.
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

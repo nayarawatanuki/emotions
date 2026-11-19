@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import {
   formatCivilDate,
   type ChildView
 } from '../../features/children/children-api'
 export function ChildDetails({
   child,
+  children,
   visible,
   onClose,
   onEdit,
@@ -14,6 +15,7 @@ export function ChildDetails({
   disabled?: boolean
   onEdit?: () => void
   onArchive?: (opener: HTMLElement) => void
+  children?: ReactNode
   child: ChildView
   visible: boolean
   onClose: () => void
@@ -68,6 +70,7 @@ export function ChildDetails({
           </dd>
         </div>
       </dl>
+      {children}
       <div className="care-detail-actions">
         {onArchive && (
           <button

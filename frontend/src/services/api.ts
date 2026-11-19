@@ -24,15 +24,23 @@ export async function apiRequest(
     headers['X-Emotions-Request'] = '1'
   }
   if (options.csrfToken) headers['X-CSRF-Token'] = options.csrfToken
+  const response = await apiResponse(path, {
+    method: options.method ?? (options.body === undefined ? 'GET' : 'POST'),
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    signal: options.signal
+  })
+  return readJsonResponse(response)
+}
+
+export async function apiResponse(path: string, options: RequestInit): Promise<Response> {
   const timeout = AbortSignal.timeout(20_000)
   const response = await fetch(`/api${path}`, {
-    method: options.method ?? (options.body === undefined ? 'GET' : 'POST'),
+    ...options,
     credentials: 'same-origin',
     cache: 'no-store',
     redirect: 'error',
     referrerPolicy: 'no-referrer',
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
     signal: options.signal
       ? AbortSignal.any([options.signal, timeout])
       : timeout
@@ -42,6 +50,10 @@ export async function apiRequest(
     const seconds = retry && /^\d{1,6}$/.test(retry) ? Number(retry) : null
     throw new ApiError(response.status, seconds)
   }
+  return response
+}
+
+export async function readJsonResponse(response: Response): Promise<unknown> {
   if (response.status === 204) return null
   if (!response.headers.get('Content-Type')?.includes('application/json'))
     throw new ApiError(502)

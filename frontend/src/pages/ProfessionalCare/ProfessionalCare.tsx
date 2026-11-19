@@ -5,12 +5,14 @@ import {
   createChild,
   setChildArchived,
   updateChild,
+  uploadChildPhoto,
   loadChild,
   type ChildView,
   type CreateChildInput
 } from '../../features/children/children-api'
 import { ChildForm } from '../../components/ChildForm/ChildForm'
 import { ChildDirectory } from '../../components/ChildDirectory/ChildDirectory'
+import { ChildPhoto } from '../../components/ChildPhoto/ChildPhoto'
 import { ChildDetails } from '../../components/ChildDetails/ChildDetails'
 import { ChildArchiveDialog } from '../../components/ChildArchiveDialog/ChildArchiveDialog'
 import './ProfessionalCare.css'
@@ -114,6 +116,14 @@ export function ProfessionalCare({
     focusDetail.current = true
     onSessionRefresh()
   }
+  async function savePhoto(child: ChildView, file: File) {
+    setDetail(await perform(() => uploadChildPhoto(child, file, session.csrfToken)))
+    onSessionRefresh()
+  }
+  async function reloadPhotoRecord(child: ChildView) {
+    setDetail(await perform(() => loadChild(child.id)))
+    onSessionRefresh()
+  }
   async function select(id: string) {
     setDetail(null)
     setError('')
@@ -167,7 +177,18 @@ export function ProfessionalCare({
               document.getElementById('children-directory-title')?.focus()
             )
           }}
-        />
+        >
+          {!detail.archived && (
+            <ChildPhoto
+              child={detail}
+              visible={visible}
+              disabled={disabled || archiveRequest !== null}
+              onUpload={(file) => savePhoto(detail, file)}
+              onReload={() => reloadPhotoRecord(detail)}
+              onUnauthorized={onUnauthorized}
+            />
+          )}
+        </ChildDetails>
       )}
       {archiveRequest && (
         <ChildArchiveDialog

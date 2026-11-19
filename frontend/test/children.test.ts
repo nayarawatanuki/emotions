@@ -8,6 +8,8 @@ import {
   updateChild,
   loadChild,
   loadChildren,
+  loadChildPhoto,
+  uploadChildPhoto,
   parseChild,
   parseChildSummary,
   isCivilDate,
@@ -196,4 +198,47 @@ test('archive sends only desired state and revision with PATCH/CSRF; archived li
   } finally {
     globalThis.fetch = original
   }
+})
+
+
+test('photo transport uses private WebP reads and revision-protected binary writes', async (t) => {
+  const file = new File(['synthetic bytes'], 'fixture.png', { type: 'image/png' })
+  const signal = new AbortController().signal
+  const fetchMock = t.mock.method(globalThis, 'fetch', async (path, options) => {
+    assert.equal(path, '/api/children/' + view.id + '/photo')
+    assert.equal(options.credentials, 'same-origin')
+    assert.equal(options.cache, 'no-store')
+    assert.equal(options.redirect, 'error')
+    assert.equal(options.referrerPolicy, 'no-referrer')
+    if (options.method === 'PUT') {
+      assert.equal(options.body, file)
+      assert.equal(options.headers['Content-Type'], 'image/png')
+      assert.equal(options.headers['If-Match'], '"' + view.revision + '"')
+      assert.equal(options.headers['X-Emotions-Request'], '1')
+      assert.equal(options.headers['X-CSRF-Token'], 'csrf')
+      return Response.json(view)
+    }
+    assert.equal(options.headers.Accept, 'image/webp')
+    return new Response(new Blob(['webp'], { type: 'image/webp' }))
+  })
+  assert.equal((await loadChildPhoto(view.id, signal))?.type, 'image/webp')
+  assert.deepEqual(await uploadChildPhoto(view, file, 'csrf'), view)
+  await assert.rejects(
+    uploadChildPhoto(view, new File(['text'], 'fixture.txt', { type: 'text/plain' }), 'csrf'),
+    (failure) => failure instanceof ApiError && failure.status === 415
+  )
+  assert.equal(fetchMock.mock.callCount(), 2)
+})
+
+test('photo reads distinguish missing images from malformed and unauthorized responses', async (t) => {
+  const replies = [
+    new Response(null, { status: 404 }),
+    new Response('<html>fallback</html>', { headers: { 'Content-Type': 'text/html' } }),
+    new Response(null, { status: 401 })
+  ]
+  t.mock.method(globalThis, 'fetch', async () => replies.shift())
+  const signal = new AbortController().signal
+  assert.equal(await loadChildPhoto(view.id, signal), null)
+  await assert.rejects(loadChildPhoto(view.id, signal), { status: 502 })
+  await assert.rejects(loadChildPhoto(view.id, signal), { status: 401 })
 })

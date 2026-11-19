@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from '../../services/api.ts'
+import { ApiError, apiRequest, apiResponse, readJsonResponse } from '../../services/api.ts'
 export interface ChildSummary {
   id: string
   name: string
@@ -159,4 +159,53 @@ export async function setChildArchived(
       csrfToken
     })
   )
+}
+
+
+export const childPhotoTypes = ['image/jpeg', 'image/png', 'image/webp']
+export const childPhotoMaxBytes = 5 * 1024 * 1024
+
+function photoPath(id: string) {
+  if (!uuid.test(id)) throw new ApiError(400)
+  return '/children/' + id + '/photo'
+}
+
+export async function loadChildPhoto(id: string, signal: AbortSignal) {
+  try {
+    const response = await apiResponse(photoPath(id), {
+      headers: { Accept: 'image/webp' },
+      signal
+    })
+    if (response.headers.get('Content-Type') !== 'image/webp')
+      throw new ApiError(502)
+    const photo = await response.blob()
+    if (!photo.size || photo.size > childPhotoMaxBytes) throw new ApiError(502)
+    return photo
+  } catch (failure) {
+    if (failure instanceof ApiError && failure.status === 404) return null
+    throw failure
+  }
+}
+
+export async function uploadChildPhoto(
+  child: Pick<ChildView, 'id' | 'revision'>,
+  file: File,
+  csrfToken: string
+) {
+  if (!/^[a-f0-9]{64}$/.test(child.revision) || !file.size)
+    throw new ApiError(400)
+  if (file.size > childPhotoMaxBytes) throw new ApiError(413)
+  if (!childPhotoTypes.includes(file.type)) throw new ApiError(415)
+  const response = await apiResponse(photoPath(child.id), {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': file.type,
+      'If-Match': '"' + child.revision + '"',
+      'X-Emotions-Request': '1',
+      'X-CSRF-Token': csrfToken
+    },
+    body: file
+  })
+  return parseChild(await readJsonResponse(response))
 }
