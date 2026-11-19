@@ -544,6 +544,15 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   restrito e ensaio de restauração antes do uso com dados reais.
   [Diretrizes e critérios](docs/architecture/image-processing.md#-diretrizes-aprovadas-para-eventual-uso-clínico)
 
+### ☁️ Armazenamento de produção e recuperação — ensaio local validado
+
+- Proposta de volume privado persistente para substituir o AWS S3, conforme
+  o card geral da migração.
+- Ensaio local restaurou juntos MySQL e três WebPs sintéticos, verificou os
+  hashes e confirmou o acesso pela API restaurada. Infraestrutura de
+  produção e destinos de backup seguem para escolha.
+  [Proposta, critérios e resultado](docs/architecture/storage-recovery.md)
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.
