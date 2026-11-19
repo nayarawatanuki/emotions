@@ -535,8 +535,14 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - `yarn files:inspect --simulate-cleanup` acrescenta contagens de temporários e
   órfãos elegíveis após 24 horas, com base nos metadados locais do arquivo.
 - Registros existentes, ativos ou arquivados, ficam fora dos candidatos.
-  A simulação usa apenas leitura. A autorização de exclusão e a retenção
-  clínica continuam pendentes.
+  A simulação usa apenas leitura.
+- O produto permite arquivar e restaurar fichas. A exclusão de registros
+  fica desabilitada para todos os perfis. O profissional contratante responde
+  pela organização, atualização e arquivamento dos registros sob seu cuidado.
+- A simulação trata apenas arquivos técnicos sem vínculo e preserva os dados.
+  As diretrizes para eventual uso clínico incluem finalidade da foto, acesso
+  restrito e ensaio de restauração antes do uso com dados reais.
+  [Diretrizes e critérios](docs/architecture/image-processing.md#-diretrizes-aprovadas-para-eventual-uso-clínico)
 
 ### Verificações gerais
 

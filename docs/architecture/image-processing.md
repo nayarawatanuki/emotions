@@ -258,7 +258,7 @@ contagem de arquivos no disco. Um registro apontando para qualquer um desses
 nomes conta como ausente. A verificação compara registros e nomes. Ela não
 valida o conteúdo do WebP, não mostra nomes ou chaves no relatório e não
 altera banco nem arquivos. Parar a API evita contar uma gravação em andamento
-como órfã. A retenção e qualquer exclusão exigem decisão própria.
+como órfã. A retenção de arquivos é tratada nas diretrizes abaixo.
 
 ### 🧪 Simulação de limpeza
 
@@ -275,13 +275,40 @@ ambiente local. A execução mantém os arquivos e o banco intactos.
 | Foto substituída com registro arquivado | Preservada, com o registro contado como arquivado |
 | Registro cuja foto sumiu do disco | Contado como ausente para investigação |
 
-Para eventual uso clínico, definir com a clínica a finalidade de cada foto,
-quem responde pela retenção, quem pode aprovar a exclusão e como validar a
-restauração do backup. O Einstein publica orientações para acesso ao prontuário.
-O Mass General Brigham divulga suas práticas de privacidade e inclui o McLean
-Hospital entre as organizações abrangidas. Essas referências orientam a
-governança do projeto. A política de retenção deve ser avaliada no contexto
-da clínica e do melhor interesse da criança.
+### 🔐 Diretrizes aprovadas para eventual uso clínico
+
+Antes de coletar uma foto, a clínica documenta a finalidade, avalia se a foto
+é necessária ao atendimento e verifica o melhor interesse da criança. O
+acesso à foto continua restrito ao profissional responsável pela ficha.
+
+O Emotions oferece arquivamento e restauração de fichas. A exclusão de
+registros fica desabilitada para todos os perfis, inclusive administradores.
+O profissional contratante responde pela organização, atualização e
+arquivamento dos registros sob seu cuidado e pelas boas práticas de uso
+no dia a dia. Essa atribuição descreve a responsabilidade operacional pelo
+uso do sistema.
+
+| Situação | Diretriz aprovada |
+| --- | --- |
+| Temporário ou WebP sem registro | Conferir com a API parada. Considerar candidatos após 24 horas e repetir a conferência antes de qualquer ação de descarte. |
+| Foto atual de ficha arquivada | Preservar para a restauração da ficha. |
+| Foto substituída com registro arquivado | Preservar enquanto a clínica define a finalidade e o prazo de guarda da categoria. |
+| Registro com arquivo ausente | Investigar a inconsistência e verificar a possibilidade de recuperar o arquivo. Preservar a linha no banco. |
+
+A margem de 24 horas só governa a triagem técnica local. A simulação atual
+continua limitada a contar arquivos temporários e arquivos sem registro. Uma
+eventual limpeza desses arquivos técnicos exige autorização própria e nova
+conferência para verificar que continuam sem vínculo. Essa operação fica
+fora das funções de gestão de fichas.
+
+Antes da implantação, testar a restauração do banco e do armazenamento em
+ambiente isolado usando dados sintéticos. Conferir o vínculo entre ficha e
+arquivo, a leitura pelo profissional responsável e a recusa de outro perfil.
+Registrar o resultado do ensaio e suas limitações antes de escolher a
+configuração de produção.
+
+As referências institucionais orientam a governança e a avaliação de
+retenção de dados para eventual uso clínico.
 
 - [Portal de Privacidade e Proteção de Dados do Einstein](https://www.einstein.br/n/o-einstein/acesso-informacao/privacidade-protecao-dados)
 - [Aviso de privacidade e instituições abrangidas do Mass General Brigham](https://www.massgeneralbrigham.org/en/notices/hipaa)
