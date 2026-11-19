@@ -266,6 +266,23 @@ export class ChildrenService {
     );
   }
 
+  async photoStorageKey(context: SessionContext, id: string): Promise<string> {
+    const photo = await this.ownedQuery(context)
+      .innerJoin(
+        StoredFileEntity.options.name,
+        'photo',
+        'photo.id = child.photoFileId AND photo.professionalId = child.professionalId',
+      )
+      .select('photo.storageKey', 'storageKey')
+      .andWhere('child.id = :id', { id })
+      .andWhere('child.archivedAt IS NULL')
+      .andWhere('photo.archivedAt IS NULL')
+      .andWhere('photo.mediaType = :mediaType', { mediaType: 'image/webp' })
+      .getRawOne<{ storageKey: string }>();
+    if (!photo) throw new NotFoundException();
+    return photo.storageKey;
+  }
+
   async associatePhoto(
     context: SessionContext,
     id: string,

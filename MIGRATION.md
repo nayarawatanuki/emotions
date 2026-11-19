@@ -502,6 +502,14 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - O build separa a área autenticada em outro bundle. O JavaScript inicial passou
   de 94,34 para 87,56 kB gzip. A medição de latência em dispositivos segue pendente.
 
+### 🔐 Leitura autorizada da foto — implementada para revisão
+
+- `GET /children/:id/photo` devolve o WebP privado ao profissional
+  responsável, com proteção de mesma origem e sem cache.
+- Fotos vinculadas a fichas arquivadas ficam indisponíveis até a restauração.
+- Interface, retenção e reconciliação continuam pendentes.
+  [Contrato da leitura](docs/architecture/image-processing.md#-leitura-autorizada-da-foto)
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Inject,
   Param,
   ParseUUIDPipe,
@@ -12,6 +13,7 @@ import {
   Put,
   Query,
   Req,
+  StreamableFile,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -22,7 +24,7 @@ import type {
   AuthenticatedRequest,
   SessionContext,
 } from '../../auth/auth.types.js';
-import { ChildPhotoUploadService } from '../services/child-photo-upload.service.js';
+import { ChildPhotoService } from '../services/child-photo.service.js';
 import { ChildrenService } from '../services/children.service.js';
 import { parseCreateChildInput } from '../dto/create-child-input.js';
 import { parseChildDirectoryQuery } from '../dto/child-directory-query.js';
@@ -36,8 +38,8 @@ function context(request: AuthenticatedRequest): SessionContext {
 @AllowedRoles('professional')
 export class ChildrenController {
   constructor(
-    @Inject(ChildPhotoUploadService)
-    private readonly photos: ChildPhotoUploadService,
+    @Inject(ChildPhotoService)
+    private readonly photos: ChildPhotoService,
     @Inject(ChildrenService) private readonly children: ChildrenService,
   ) {}
   @Get() list(
@@ -70,6 +72,16 @@ export class ChildrenController {
       parseUpdateChildInput(body),
     );
   }
+  @Get(':id/photo')
+  @Header('Cross-Origin-Resource-Policy', 'same-origin')
+  async readPhoto(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<StreamableFile> {
+    const bytes = await this.photos.read(context(request), id);
+    return new StreamableFile(bytes, { type: 'image/webp' });
+  }
+
   @Put(':id/photo')
   @WriteMediaTypes(...uploadImageMediaTypes)
   uploadPhoto(

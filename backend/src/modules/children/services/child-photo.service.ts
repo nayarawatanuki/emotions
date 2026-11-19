@@ -35,7 +35,7 @@ const readImage = express.raw({
 });
 
 @Injectable()
-export class ChildPhotoUploadService {
+export class ChildPhotoService {
   private readonly processor = new ImageProcessorService();
   private readonly counters = new Map<
     string,
@@ -50,6 +50,18 @@ export class ChildPhotoUploadService {
     @Inject(LocalImageStorageService)
     private readonly storage?: LocalImageStorageService,
   ) {}
+
+  async read(context: SessionContext, childId: string): Promise<Buffer> {
+    if (!this.storage) throw new NotFoundException();
+    const key = await this.children.photoStorageKey(context, childId);
+    try {
+      return await this.storage.read(key);
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
+        throw new NotFoundException();
+      throw error;
+    }
+  }
 
   async upload(context: SessionContext, childId: string, request: Request) {
     if (!this.storage) throw new NotFoundException();

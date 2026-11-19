@@ -301,6 +301,57 @@ describe('child records isolated by professional on real MySQL with rollback', (
     expect(await readdir(imageDirectory)).toEqual(filesBeforeFailure);
     await upload().send(png).expect(429);
   });
+  it('serves only the current private WebP to the owner of an active child record', async () => {
+    const child = await create();
+    const url = `/children/${child.id}/photo`;
+    await get(url).expect(404);
+    const png = await sharp({
+      create: { width: 3, height: 2, channels: 3, background: '#abc' },
+    })
+      .png()
+      .toBuffer();
+    const uploaded = await request(app.getHttpServer())
+      .put(url)
+      .set('Cookie', `emotions_session_local=${tokens.first}`)
+      .set('Origin', origin)
+      .set('X-Emotions-Request', '1')
+      .set('X-CSRF-Token', csrfToken(secret, tokens.first))
+      .set('If-Match', `"${child.revision}"`)
+      .set('Content-Type', 'image/png')
+      .send(png)
+      .expect(200);
+    await request(app.getHttpServer()).get(url).expect(401);
+    await get(url, tokens.admin).expect(403);
+    await get(url, tokens.second).expect(404);
+    await get(url).set('Sec-Fetch-Site', 'cross-site').expect(403);
+    const response = await get(url)
+      .expect('Content-Type', 'image/webp')
+      .expect('Cache-Control', 'no-store')
+      .expect('Cross-Origin-Resource-Policy', 'same-origin')
+      .expect(200);
+    const bytes = response.body as Buffer;
+    expect(await sharp(bytes).metadata()).toMatchObject({
+      format: 'webp',
+      width: 3,
+      height: 2,
+    });
+    const archived = await archive(uploaded.body as ChildView).expect(200);
+    await get(url).expect(404);
+    await archive(archived.body as ChildView, false).expect(200);
+    await get(url).expect(200);
+
+    const record = await runner.manager
+      .getRepository(ChildEntity)
+      .findOneByOrFail({ id: child.id });
+    const file = await runner.manager
+      .getRepository(StoredFileEntity)
+      .createQueryBuilder('photo')
+      .addSelect('photo.storageKey')
+      .where('photo.id = :id', { id: record.photoFileId })
+      .getOneOrFail();
+    await rm(join(imageDirectory, file.storageKey));
+    await get(url).expect(404);
+  });
   it('creates identity and child atomically with owner from session, civil date and no password', async () => {
     const response = await post().send(input).expect(201);
     const result = response.body as ChildView;

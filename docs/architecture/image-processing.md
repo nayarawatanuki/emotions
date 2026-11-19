@@ -219,6 +219,18 @@ atualiza a ficha. Em substituições, a transação arquiva o registro anterior.
 Se a associação falhar, o arquivo novo é removido quando o banco confirma a
 ausência do registro. A resposta traz a ficha e sua nova revisão.
 
-A entrega autorizada da foto, a interface acessível e a política de retenção
-continuam pendentes. A reconciliação deve cobrir arquivos de operações
+A interface acessível e a política de retenção continuam pendentes. A reconciliação deve cobrir arquivos de operações
 interrompidas e os arquivos arquivados por substituição.
+
+## 🔐 Leitura autorizada da foto
+
+`GET /children/:id/photo` entrega a foto atual em WebP ao profissional
+responsável. A consulta exige sessão profissional e seleciona a chave privada
+somente quando a ficha e o arquivo estão ativos e pertencem ao mesmo
+profissional. Fichas arquivadas preservam o vínculo e voltam a permitir a
+leitura após restauração.
+
+A resposta usa `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`
+e `Cross-Origin-Resource-Policy: same-origin`. A rota retorna o mesmo 404
+para ficha de outro profissional, foto ausente, ficha arquivada ou arquivo
+ausente no disco. O identificador de armazenamento fica no backend.
