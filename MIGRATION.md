@@ -522,6 +522,14 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - A confirmação do envio pelo seletor nativo e a validação com leitor de
   tela seguem pendentes.
 
+### 🔎 Conferência local de arquivos — implementada para revisão
+
+- `yarn files:inspect` cruza as chaves de `files` com o diretório privado
+  e mostra totais de temporários, órfãos, ausentes e registros arquivados.
+- Executar com a API parada. O comando usa apenas leitura no MySQL e no
+  armazenamento. Retenção e exclusão continuam pendentes de decisão.
+  [Como executar](docs/architecture/image-processing.md#-conferência-local-do-armazenamento)
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

@@ -8,6 +8,10 @@ import type { NormalizedImage } from './image-processor.service.js';
 const storageKeyPattern =
   /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.webp$/u;
 
+export function isImageStorageKey(key: string): boolean {
+  return key.length === 41 && storageKeyPattern.test(key);
+}
+
 export class LocalImageStorageService {
   constructor(private readonly directory: string) {}
 
@@ -70,7 +74,7 @@ export class LocalImageStorageService {
   }
 
   private filePath(key: string): string {
-    if (key.length !== 41 || !storageKeyPattern.test(key)) {
+    if (!isImageStorageKey(key)) {
       throw new Error('Invalid image storage key.');
     }
     return join(this.directory, key);

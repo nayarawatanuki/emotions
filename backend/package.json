@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
+    "files:inspect": "yarn build && node --env-file-if-exists=.env dist/modules/files/commands/inspect-local-images.js",
     "migration:status": "yarn build && node --env-file-if-exists=.env dist/database/migration-status.js",
     "migration:run": "yarn build && node --env-file-if-exists=.env dist/database/run-migrations.js",
     "build": "nest build",

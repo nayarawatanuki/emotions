@@ -234,3 +234,28 @@ A resposta usa `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`
 e `Cross-Origin-Resource-Policy: same-origin`. A rota retorna o mesmo 404
 para ficha de outro profissional, foto ausente, ficha arquivada ou arquivo
 ausente no disco. O identificador de armazenamento fica no backend.
+
+## 🔎 Conferência local do armazenamento
+
+Com a API parada, configure `DB_ENABLED=true`, a conexão MySQL local e
+`IMAGE_STORAGE_DIRECTORY` como descrito acima. Execute no diretório `backend`:
+
+```sh
+yarn files:inspect
+```
+
+A saída contém quatro contagens:
+
+| Campo | O que conta |
+| --- | --- |
+| `temporaryFiles` | Temporários cujo nome segue o padrão de gravação da API |
+| `unregisteredFiles` | WebPs com chave válida no disco sem linha correspondente em `files` |
+| `missingFiles` | Registros de `files` sem arquivo regular correspondente |
+| `archivedRecords` | Registros de arquivo arquivados, incluindo fotos substituídas |
+
+Links simbólicos, subdiretórios e nomes fora do padrão ficam fora da
+contagem de arquivos no disco. Um registro apontando para qualquer um desses
+nomes conta como ausente. A verificação compara registros e nomes. Ela não
+valida o conteúdo do WebP, não mostra nomes ou chaves no relatório e não
+altera banco nem arquivos. Parar a API evita contar uma gravação em andamento
+como órfã. A retenção e qualquer exclusão exigem decisão própria.
