@@ -37,11 +37,10 @@ de hospedagem compatível com MySQL e dos limites disponíveis.
 
 A quarta migration cria `stored_image_bytes` com um `MEDIUMBLOB` por
 registro de `files` e limite de 5 MiB imposto pelo banco. O esquema é aditivo.
-A reversão exige a tabela vazia e a API parada. O upload e a leitura ainda
-usam o armazenamento local. A integração futura exige testes de autorização,
-concorrência e rollback, medição do tamanho do banco e um novo ensaio de
-restauração. Inventariar os WebPs existentes antes de qualquer migração de
-dados. O ensaio abaixo registra o modelo anterior de banco e diretório separado.
+A reversão exige a tabela vazia e a API parada. A integração ao MySQL foi
+validada em ambiente descartável e está descrita no fim deste documento.
+Inventariar os WebPs existentes antes de qualquer migração de dados. O
+primeiro ensaio abaixo registra o modelo de banco e diretório separado.
 
 - [MySQL: tipos binários](https://dev.mysql.com/doc/refman/8.0/en/string-type-syntax.html)
 - [MySQL: limites de pacote](https://dev.mysql.com/doc/refman/8.0/en/packet-too-large.html)
@@ -129,3 +128,31 @@ O ensaio de recuperação da versão modernizada já foi validado localmente.
 A cópia da implantação original será feita quando o ambiente atual tiver sido
 identificado e houver acesso autorizado. A hospedagem com dados clínicos fica
 fora do escopo atual do portfólio.
+
+## 📸 Integração das fotos com MySQL
+
+Após aplicar a quarta migration no ambiente escolhido, habilite
+`IMAGE_STORAGE_MYSQL=true` junto com a autenticação. Para um ambiente novo,
+deixe `IMAGE_STORAGE_DIRECTORY` vazio. Upload e leitura passam a funcionar
+com o MySQL como único armazenamento de imagens.
+
+- O upload mantém a normalização e os limites existentes. Metadados, bytes e
+  vínculo com a ficha são gravados na mesma transação. A substituição arquiva
+  os metadados anteriores e preserva sua imagem.
+- A leitura seleciona a imagem apenas pela ficha ativa e pelo profissional
+  autorizado. Ela usa a mesma rota WebP privada, sem cache.
+- Para transição local, manter também `IMAGE_STORAGE_DIRECTORY` permite ler
+  as fotos antigas do disco. Os novos uploads entram no banco. A inspeção do
+  diretório passa a contar somente os registros de armazenamento em disco.
+- Os WebPs já gravados no diretório exigem inventário e uma migração
+  própria. Desabilitar o modo MySQL torna indisponíveis as imagens que já
+  estiverem somente no banco.
+
+
+No MySQL Community 9.7.4 descartável, o upload e a leitura funcionaram sem
+diretório configurado. Uma falha induzida na atualização da ficha reverteu o
+novo arquivo e seus bytes, preservando a foto anterior. Dois uploads com a
+mesma revisão retornaram HTTP 200 e 409. A restauração de um dump com
+`--hex-blob` recuperou a foto com o mesmo SHA-256 e manteve a autorização.
+A amostra sintética cobre o fluxo funcional. O volume dos backups ainda
+precisa ser medido com uma amostra representativa.

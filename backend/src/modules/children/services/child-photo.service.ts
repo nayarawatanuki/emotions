@@ -1,3 +1,5 @@
+import { MYSQL_IMAGE_STORAGE } from '../../../config/image-storage-environment.js';
+import { mysqlImageKeyPrefix } from '../../files/services/image-policy.js';
 import {
   BadRequestException,
   ConflictException,
@@ -46,16 +48,26 @@ export class ChildPhotoService {
   constructor(
     @Inject(ChildrenService) private readonly children: ChildrenService,
     @Inject(DataSource) private readonly source: DataSource,
+    @Inject(MYSQL_IMAGE_STORAGE) private readonly mysqlImages: boolean,
     @Optional()
     @Inject(LocalImageStorageService)
     private readonly storage?: LocalImageStorageService,
   ) {}
 
   async read(context: SessionContext, childId: string): Promise<Buffer> {
+    if (!this.mysqlImages && !this.storage) throw new NotFoundException();
+    const photo = await this.children.photoStorage(
+      context,
+      childId,
+      this.mysqlImages,
+    );
+    if (photo.storageKey.startsWith(mysqlImageKeyPrefix)) {
+      if (!Buffer.isBuffer(photo.bytes)) throw new NotFoundException();
+      return photo.bytes;
+    }
     if (!this.storage) throw new NotFoundException();
-    const key = await this.children.photoStorageKey(context, childId);
     try {
-      return await this.storage.read(key);
+      return await this.storage.read(photo.storageKey);
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
         throw new NotFoundException();
@@ -64,7 +76,7 @@ export class ChildPhotoService {
   }
 
   async upload(context: SessionContext, childId: string, request: Request) {
-    if (!this.storage) throw new NotFoundException();
+    if (!this.mysqlImages && !this.storage) throw new NotFoundException();
     const revision =
       request.headers['if-match']?.match(/^"([a-f0-9]{64})"$/u)?.[1];
     if (!revision) throw new BadRequestException();
@@ -91,13 +103,27 @@ export class ChildPhotoService {
       if (!Buffer.isBuffer(bytes)) throw new BadRequestException();
       const image = await this.processor.normalize(bytes);
       const id = randomUUID();
-      const storageKey = await this.storage.save(image);
+      const metadata = {
+        id,
+        mediaType: image.mediaType,
+        sizeBytes: String(image.bytes.length),
+      };
+      if (this.mysqlImages) {
+        return await this.children.associatePhoto(
+          context,
+          childId,
+          revision,
+          { ...metadata, storageKey: mysqlImageKeyPrefix + id },
+          image.bytes,
+        );
+      }
+
+      const storage = this.storage!;
+      const storageKey = await storage.save(image);
       try {
         return await this.children.associatePhoto(context, childId, revision, {
-          id,
+          ...metadata,
           storageKey,
-          mediaType: image.mediaType,
-          sizeBytes: String(image.bytes.length),
         });
       } catch (error) {
         // A lost connection can leave the commit result ambiguous. Preserve the
@@ -105,7 +131,7 @@ export class ChildPhotoService {
         if (
           !(await this.source.getRepository(StoredFileEntity).existsBy({ id }))
         )
-          await this.storage.remove(storageKey);
+          await storage.remove(storageKey);
         throw error;
       }
     } catch (error) {

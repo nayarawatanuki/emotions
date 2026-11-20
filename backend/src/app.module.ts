@@ -6,7 +6,10 @@ import { Module } from '@nestjs/common';
 import type { DynamicModule } from '@nestjs/common';
 import { readDatabaseEnvironment } from './config/database-environment.js';
 import { DatabaseModule } from './database/database.module.js';
-import { readImageStorageEnvironment } from './config/image-storage-environment.js';
+import {
+  readImageStorageEnvironment,
+  readMysqlImageStorageEnabled,
+} from './config/image-storage-environment.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 
@@ -18,6 +21,9 @@ export class AppModule {
     const database = readDatabaseEnvironment(source);
     const imageStorage = readImageStorageEnvironment(source);
     const auth = readAuthEnvironment(source);
+    const mysqlImages = readMysqlImageStorageEnabled(source);
+    if (mysqlImages && !auth)
+      throw new Error('IMAGE_STORAGE_MYSQL exige autenticação habilitada.');
     const authentication = auth ? AuthModule.register(auth) : null;
     const files = imageStorage ? FilesModule.registerLocal(imageStorage) : null;
     return {
@@ -29,7 +35,7 @@ export class AppModule {
           ? [
               authentication,
               ProfessionalsModule.register(authentication),
-              ChildrenModule.register(files),
+              ChildrenModule.register(files, mysqlImages),
             ]
           : []),
       ],

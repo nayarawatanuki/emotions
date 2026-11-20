@@ -1,3 +1,4 @@
+import { mysqlImageKeyPrefix } from '../services/image-policy.js';
 import type { DataSource } from 'typeorm';
 import { readDatabaseEnvironment } from '../../../config/database-environment.js';
 import {
@@ -34,6 +35,9 @@ try {
     .createQueryBuilder('file')
     .select('file.storageKey', 'storageKey')
     .addSelect('file.archivedAt', 'archivedAt')
+    .where('file.storageKey NOT LIKE :mysqlKeys', {
+      mysqlKeys: mysqlImageKeyPrefix + '%',
+    })
     .getRawMany<{ storageKey: string; archivedAt: Date | null }>();
   const counts = await inspectImageStorage(
     directory,

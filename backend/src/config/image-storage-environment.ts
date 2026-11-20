@@ -9,6 +9,17 @@ function containsPath(parent: string, child: string): boolean {
   return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
+export const MYSQL_IMAGE_STORAGE = Symbol('MYSQL_IMAGE_STORAGE');
+
+export function readMysqlImageStorageEnabled(
+  source: NodeJS.ProcessEnv,
+): boolean {
+  const enabled = source.IMAGE_STORAGE_MYSQL ?? 'false';
+  if (enabled !== 'true' && enabled !== 'false')
+    throw new Error('IMAGE_STORAGE_MYSQL deve ser true ou false.');
+  return enabled === 'true';
+}
+
 export function readImageStorageEnvironment(
   source: NodeJS.ProcessEnv,
 ): string | null {

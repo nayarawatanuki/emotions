@@ -266,8 +266,12 @@ export class ChildrenService {
     );
   }
 
-  async photoStorageKey(context: SessionContext, id: string): Promise<string> {
-    const photo = await this.ownedQuery(context)
+  async photoStorage(
+    context: SessionContext,
+    id: string,
+    mysqlImages: boolean,
+  ): Promise<{ storageKey: string; bytes?: Buffer | null }> {
+    const query = this.ownedQuery(context)
       .innerJoin(
         StoredFileEntity.options.name,
         'photo',
@@ -277,10 +281,18 @@ export class ChildrenService {
       .andWhere('child.id = :id', { id })
       .andWhere('child.archivedAt IS NULL')
       .andWhere('photo.archivedAt IS NULL')
-      .andWhere('photo.mediaType = :mediaType', { mediaType: 'image/webp' })
-      .getRawOne<{ storageKey: string }>();
+      .andWhere('photo.mediaType = :mediaType', { mediaType: 'image/webp' });
+    if (mysqlImages) {
+      query
+        .leftJoin('stored_image_bytes', 'image', 'image.file_id = photo.id')
+        .addSelect('image.image_bytes', 'bytes');
+    }
+    const photo = await query.getRawOne<{
+      storageKey: string;
+      bytes?: Buffer | null;
+    }>();
     if (!photo) throw new NotFoundException();
-    return photo.storageKey;
+    return photo;
   }
 
   async associatePhoto(
@@ -288,6 +300,7 @@ export class ChildrenService {
     id: string,
     revision: string,
     file: Pick<StoredFile, 'id' | 'storageKey' | 'mediaType' | 'sizeBytes'>,
+    bytes?: Buffer,
   ): Promise<ChildView> {
     return this.withOwnedChild(
       context,
@@ -305,6 +318,12 @@ export class ChildrenService {
           createdAt: now,
           updatedAt: now,
         });
+        if (bytes) {
+          await manager.query(
+            'INSERT INTO stored_image_bytes (file_id, image_bytes) VALUES (?, ?)',
+            [file.id, bytes],
+          );
+        }
         await manager.getRepository(ChildEntity).update(child.id, {
           photoFileId: file.id,
           updatedAt: now,

@@ -10,3 +10,5 @@ export const imagePolicy = Object.freeze({
 });
 
 export const uploadImageMediaTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+export const mysqlImageKeyPrefix = 'mysql:';

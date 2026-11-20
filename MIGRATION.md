@@ -584,6 +584,17 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   dos WebPs no MySQL seguem para outras etapas.
   [Versões do MySQL Community](https://dev.mysql.com/downloads/mysql/9.7.html)
 
+### 📸 Upload e leitura de imagens no MySQL — implementados para revisão
+
+- `IMAGE_STORAGE_MYSQL=true` habilita gravação transacional dos WebPs e
+  leitura protegida. Configurar após aplicar a quarta migration.
+- O diretório privado pode ser mantido para ler as fotos antigas durante
+  a transição. A inspeção de disco desconsidera registros do modo MySQL.
+- MySQL 9.7.4 descartável confirmou upload e leitura sem diretório, rollback,
+  conflito de revisão sob concorrência e restauração da foto só pelo dump
+  do banco. Tipos, lint, build e 449 testes de regressão passaram.
+  [Configuração e transição](docs/architecture/storage-recovery.md#-integração-das-fotos-com-mysql)
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.
