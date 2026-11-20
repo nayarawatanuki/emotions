@@ -64,6 +64,7 @@ describe('migration configuration', () => {
         'InitialDomainSchema1793520000000',
         'UnifyActivityResults1793520001000',
         'AddAuthenticationPersistence1793520002000',
+        'AddStoredImageBytes1793520003000',
       ],
     );
   });

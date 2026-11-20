@@ -1,3 +1,4 @@
+import { AddStoredImageBytes1793520003000 } from './migrations/1793520003000-add-stored-image-bytes.js';
 import { AddAuthenticationPersistence1793520002000 } from './migrations/1793520002000-add-authentication-persistence.js';
 import type { DataSourceOptions } from 'typeorm';
 import { readDatabaseEnvironment } from '../config/database-environment.js';
@@ -9,6 +10,7 @@ export const databaseMigrations = [
   InitialDomainSchema1793520000000,
   UnifyActivityResults1793520001000,
   AddAuthenticationPersistence1793520002000,
+  AddStoredImageBytes1793520003000,
 ];
 export const migrationsTableName = 'schema_migrations';
 

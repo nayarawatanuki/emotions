@@ -96,7 +96,7 @@ describe('explicit metadata discovery without globs', () => {
     });
     await expect(
       new InspectionSource(migrationOptions).inspect(),
-    ).resolves.toEqual({ entities: 12, migrations: 3 });
+    ).resolves.toEqual({ entities: 12, migrations: 4 });
     expect(scan).not.toHaveBeenCalled();
     // Positive control: the upstream loader really calls this intercepted function.
     const { DataSource } = await import('typeorm');

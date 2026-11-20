@@ -546,12 +546,27 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 
 ### ☁️ Armazenamento de produção e recuperação — ensaio local validado
 
-- Proposta de volume privado persistente para substituir o AWS S3, conforme
-  o card geral da migração.
+- O ensaio validou o modelo de volume privado e MySQL. Para substituir o
+  AWS S3 sem depender do disco da aplicação, foi aprovado
+  armazenar os WebPs em MySQL, com metadados e bytes em tabelas separadas.
 - Ensaio local restaurou juntos MySQL e três WebPs sintéticos, verificou os
-  hashes e confirmou o acesso pela API restaurada. Infraestrutura de
-  produção e destinos de backup seguem para escolha.
+  hashes e confirmou o acesso pela API restaurada. O objetivo atual é
+  modernizar o TCC para portfólio, com dados sintéticos e custo zero.
   [Proposta, critérios e resultado](docs/architecture/storage-recovery.md)
+- Antes de substituir a produção atual, identificar o que está implantado,
+  preservar e testar uma cópia privada (`emotions-legacy`).
+- Apresentar a evolução em uma demonstração com dados sintéticos.
+  [Preservação da versão original](docs/architecture/storage-recovery.md#-preservação-da-versão-original)
+
+### 🧩 Esquema para imagens no MySQL — preparado para revisão
+
+- A quarta migration cria `stored_image_bytes` com um WebP de até 5 MiB
+  por registro de `files`. A reversão recusa uma tabela com imagens.
+- MySQL descartável validou a atualização incremental sobre três migrations,
+  preservação dos registros existentes, limite de tamanho, chave estrangeira
+  e reversão apenas com a tabela vazia. Tipos, lint, 301 testes e build passaram.
+- A API ainda usa o armazenamento local. A integração e a migração dos
+  arquivos existentes ficam para outros incrementos.
 
 ### Verificações gerais
 
