@@ -568,6 +568,22 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - A API ainda usa o armazenamento local. A integração e a migração dos
   arquivos existentes ficam para outros incrementos.
 
+### 🧩 MySQL Community 9.7 LTS — alvo validado em ambiente isolado
+
+- A versão modernizada adota a linha 9.7 LTS. O MySQL Community 9.7.4
+  para macOS ARM64 foi validado a partir do binário oficial assinado.
+- Em instância descartável, as quatro migrations passaram do zero. O
+  teste incremental da quarta migration preservou os registros anteriores
+  e validou o limite de 5 MiB, a chave estrangeira e a reversão com a
+  tabela vazia.
+- O ensaio de restauração repetiu o fluxo com `mysql2` e TypeORM já
+  instalados. A API recuperou três WebPs sintéticos e manteve as regras
+  de autorização. O ensaio ainda usou o diretório privado para as imagens.
+- A instalação existente do MySQL 8.0.46 e os dados do projeto ficaram
+  fora do teste. A troca do ambiente de desenvolvimento e a integração
+  dos WebPs no MySQL seguem para outras etapas.
+  [Versões do MySQL Community](https://dev.mysql.com/downloads/mysql/9.7.html)
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.
