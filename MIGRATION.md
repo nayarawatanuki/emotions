@@ -595,6 +595,18 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
   do banco. Tipos, lint, build e 449 testes de regressão passaram.
   [Configuração e transição](docs/architecture/storage-recovery.md#-integração-das-fotos-com-mysql)
 
+### 📸 Armazenamento MySQL ativo no desenvolvimento local
+
+- A quarta migration foi aplicada no banco local `emotions_development`.
+  A consulta de status confirmou quatro migrations aplicadas.
+- O `.env` local usa `AUTH_ENABLED=true` e `IMAGE_STORAGE_MYSQL=true`,
+  com o diretório de imagens desconfigurado.
+- Na API local com MySQL 8.0.46, o upload sintético retornou HTTP 200,
+  a leitura autenticada retornou WebP sem cache e a leitura sem sessão
+  retornou HTTP 401. O banco confirmou o vínculo entre a foto e a ficha.
+- Após a limpeza, as 13 tabelas da aplicação ficaram vazias. A linha
+  9.7 LTS continua como alvo da versão modernizada.
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.
