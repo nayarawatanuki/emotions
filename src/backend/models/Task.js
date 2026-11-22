@@ -9,6 +9,7 @@ class Task extends Model {
             response2: DataTypes.STRING,
             response3: DataTypes.STRING,
             image: DataTypes.STRING,
+            image_description: DataTypes.TEXT,
             status: DataTypes.STRING,
         }, {
             sequelize

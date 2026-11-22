@@ -52,7 +52,7 @@ function Tasks() {
                                 savePhoto(kid.photo);
                                 return(
                                     <div className="chip" key={kid.id}>
-                                        <img src={kid.photo}></img>
+                                        <img src={kid.photo} alt="" />
                                         {kid.name}
                                     </div>
                                 )

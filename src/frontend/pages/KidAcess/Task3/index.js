@@ -1,238 +1,144 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
-import swal from '@sweetalert/with-react'
+import React, { useEffect, useRef, useState } from 'react';
+import swal from 'sweetalert';
+import { useHistory } from 'react-router-dom';
+
 import api from '../../../services/api';
-
-import '../../../global/styles/fireworks/style.css';
-import '../../../global/styles/instruction/style.css';
 import GlobalStyle from '../../../global/styles';
-import { App, Container, Content, Label } from './styles';
-
-import { Link, useHistory } from 'react-router-dom';
+import { Container, Content, Answer, Answers, ActivityImage } from './styles';
 import { useKidContext } from '../../../context/kidContext';
 import { useTaskContext } from '../../../context/taskContext';
 
 function Task3() {
-  const {kid_name} = useKidContext();
-  const {task_id} = useTaskContext();
-  const [task, setTask] = useState([]);
-  const [reward, setReward] = useState([]);
-  
-  const [time, setTime] = useState(0);
-  const [response, setResponse] = useState();
-  const [tries, setTries] = useState(1);
-  const [status, setStatus] = useState('realizada');
-  
-  const [isActive, setIsActive] = useState(true);
+  const { kid_name } = useKidContext();
+  const { task_id } = useTaskContext();
   const history = useHistory();
-
-  useLayoutEffect(() => {
-    api.get(`/${kid_name}/tasks/taskListOne/${task_id}`)
-    .then((response) => {
-      setTask([response.data]);
-    }).catch((error) => {
-        console.error('error', error) 
-    });
-  }, [kid_name, task_id]);
-
-  useLayoutEffect(() => {
-    api.get(`/tasks/${task_id}/listRewards`)
-    .then((response) => {
-      setReward(response.data);
-      console.log(reward);
-    }).catch((error) => {
-        console.error('error', error) 
-    });
-  }, [task_id]);
+  const startedAt = useRef(Date.now());
+  const saving = useRef(false);
+  const draggedAnswer = useRef(null);
+  const [task, setTask] = useState(null);
+  const [attempts, setAttempts] = useState(0);
+  const [response, setResponse] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [loadError, setLoadError] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    let interval = null;
-    if(isActive){
-      interval = setInterval(() => {
-        setTime(time => time + 1);
-      }, 1000);
-    } else if(!isActive && time !== 0) {
-      clearInterval(interval);
-    }
-    return () => clearInterval(interval);
-  }, [isActive, time]);
-
-  function openReward() {
-    reward.map((reward) => {
-      return (
-        swal({
-          content: (
-            <div className="pyro" >
-          
-              <div className="before"></div>
-              <div className="after"></div>
-            </div>
-          ),
-          title: reward.message, 
-          icon: reward.photo
-        })
-      )
-    })
-  }
-
-  async function allowDrop(e) {
-    await e.preventDefault();
-  }
-
-  async function drag(e) {
-    await e.dataTransfer.setData("text", e.target.id);
-  }
-
-  async function drop(e) {
-    await e.preventDefault();
-    var data = e.dataTransfer.getData("text");
-    e.target.appendChild(document.getElementById(data));
-  }
-
-  function stopTime() {
-    setIsActive(false);
-    setTime(time);
-    setResponse(response);
-  }
-
-  async function create(){  
-
-    await api.post(
-        `/tasks/${task_id}/createdTaskResult`,
-        { task_id, response, tries, time },
-        
-        //window.alert('Atividade finalizada!')
-        )
-        .then(response => 
-        console.log(JSON.stringify({
-            "task_id": task_id,
-            "response": response,
-            "tries": tries,
-            "time": time
-        })),
-        console.log("Enviado!")
-    );
-  }
-
-  async function updateTask() {
-
-    await api.put(`/tasks/${task_id}/updatedTask`,
-    { status }
-    ).then(response => {
-      console.log(response);
-      console.log(JSON.stringify({
-          "status": status
-      }));
-      console.log("Task atualizada!");
+    let active = true;
+    api.get(`/${kid_name}/tasks/taskListOne/${task_id}`).then(({ data }) => {
+      if (!active) return;
+      if (!data) setLoadError(true);
+      else {
+        setTask(data);
+        startedAt.current = Date.now();
+      }
+    }).catch(() => {
+      if (active) setLoadError(true);
     });
-  }
+    return () => { active = false; };
+  }, [kid_name, task_id]);
 
-  const sendTask = async () => {
-    await create();
-    //updateTask();
+  async function saveActivityResult(answer, tries, showReward) {
+    if (saving.current) return;
+    saving.current = true;
+    setBusy(true);
+    setFeedback('Salvando resultado…');
+    const time = Math.floor((Date.now() - startedAt.current) / 1000);
+    try {
+      await api.post(`/tasks/${task_id}/createdTaskResult`, { response: answer, tries, time });
+    } catch {
+      setFeedback('Não foi possível salvar o resultado. Tente novamente.');
+      saving.current = false;
+      setBusy(false);
+      return;
+    }
+
+    if (showReward) {
+      const rewards = await api.get(`/tasks/${task_id}/listRewards`)
+        .then(({ data }) => data)
+        .catch(() => []);
+      for (const reward of rewards) {
+        await swal({ title: reward.message, icon: reward.photo, button: 'Continuar' });
+      }
+      if (!rewards.length) await swal('Resposta correta! Resultado salvo.');
+    } else {
+      await swal('Resultado salvo.');
+    }
     history.push('/Tasks');
   }
 
+  function chooseAnswer(answer) {
+    if (saving.current || !answer) return;
+    const tries = attempts + 1;
+    setResponse(answer);
+    setAttempts(tries);
+    if (answer === task.emotion) {
+      saveActivityResult(answer, tries, true);
+    } else {
+      setFeedback(`“${answer}” não é a resposta certa. Tente outra opção.`);
+    }
+  }
+
+  async function finish() {
+    const confirmed = await swal({
+      title: 'Finalizar atividade?',
+      text: 'Depois de finalizar, você não poderá refazer esta atividade.',
+      buttons: ['Continuar atividade', 'Finalizar']
+    });
+    if (confirmed) saveActivityResult(response, attempts, false);
+  }
+
   return (
-    <App>
-      <nav className="navbar navbar-light bg-light">
-        <div>
-          <button className="button button-danger" onClick={() => history.push('/Tasks')}>SAIR</button>
-        </div>
-        <h4 className="instruction">
-          Associando palavra a imagem {'>>'} <br/>
-        </h4>
-        <h1></h1>     
-      </nav>
+    <>
+      <header className="navbar navbar-light bg-light">
+        <button type="button" className="button button-danger" disabled={busy}
+          onClick={() => history.push('/Tasks')}>Sair da atividade</button>
+      </header>
       <Container>
         <Content>
-          {task.map((task) => {
-            return (
-              <form encType='multipar/form-data' fit-content="true" key={task.id}>
-                <div className='row' style={{marginTop: '2%', justifyContent: 'center'}}>
-                  <img display="center"
-                    onDragOver={(e)=> allowDrop(e)} 
-                    onDrop={()=> {                        
-                      if( response === task.emotion ) {                        
-                        stopTime();
-                        openReward();
-                        sendTask();
-                      } else {
-                        setTries(tries+1);
-                        console.log('tentativas: ', tries);
-                        stopTime();
-
-                        if(task.response1 === task.emotion){
-                          document.getElementById('emotion1').style.boxShadow = '0 0 1em green';
-                        } else if(task.response2 === task.emotion) {
-                          document.getElementById('emotion2').style.boxShadow = '0 0 1em green';
-                        } else if(task.response3 === task.emotion) {
-                          document.getElementById('emotion3').style.boxShadow = '0 0 1em green';
-                        }
-                      }
+          <h1>Associe a emoção à imagem</h1>
+          {loadError && <p role="alert">Não foi possível carregar a atividade.</p>}
+          {!task && !loadError && <p role="status">Carregando atividade…</p>}
+          {task && (
+            <>
+              <p>Arraste ou clique na emoção que combina com a imagem. Se usar o teclado, vá até a opção com Tab e pressione Enter.</p>
+              <ActivityImage src={task.image}
+                alt={task.image_description || 'Imagem da atividade sem descrição disponível.'}
+                onDragOver={(event) => {
+                  if (draggedAnswer.current) event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const answer = draggedAnswer.current;
+                  draggedAnswer.current = null;
+                  chooseAnswer(answer);
+                }}
+              />
+              <Answers>
+                <legend>Qual emoção a imagem representa?</legend>
+                {[task.response1, task.response2, task.response3].map((answer, index) => (
+                  <Answer key={index} type="button" aria-disabled={busy}
+                    onClick={() => chooseAnswer(answer)}
+                    draggable={!busy}
+                    onDragStart={(event) => {
+                      draggedAnswer.current = answer;
+                      event.dataTransfer.setData('text/plain', answer);
                     }}
-                    align="center"  
-                    src={task.image} 
-                  />
-                </div>
-
-                <div className="row" style={{marginTop: '5%', justifyContent: 'center'}}>
-                  <Label id="emotion1" name="emotion1" style={{marginRight: '4%', border: '5px double #ae8625', background: '-webkit-gradient(linear, left top, center top, from(#ae8625), to(#e6bc53)'}}
-                    value={task.response1}
-                    draggable={true} 
-                    onDragStart={(e)=> {drag(e); setResponse(task.response1)}}
-                    >{task.response1}
-                  </Label>
-
-                  <Label id="emotion2" name="emotion2" style={{marginRight: '4%', border: '5px double #ae8625', background: '-webkit-gradient(linear, left top, center top, from(#ae8625), to(#e6bc53)'}}
-                    value={task.response2} 
-                    draggable={true} 
-                    onDragStart={(e)=> {drag(e); setResponse(task.response2)}}
-                    >{task.response2}
-                  </Label>
-
-                  <Label id="emotion3" name="emotion3" style={{border: '5px double #ae8625', background: '-webkit-gradient(linear, left top, center top, from(#ae8625), to(#e6bc53)'}}
-                    value={task.response3}
-                    draggable={true} 
-                    onDragStart={(e)=> {drag(e); setResponse(task.response3)}}
-                    >{task.response3}
-                  </Label>
-                </div>
-              </form>
-            )
-          })}
-
-          <div className="row" style={{marginTop: '5%', justifyContent: 'right'}}>
-            <button className="button button-save"
-              onClick={(e) => {
-                swal({
-                  title: 'Tem certeza que deseja finalizar a tarefa?',
-                  text: 'Uma vez finalizada, não poderá refaze-la',
-                  icon: 'warning',
-                  buttons: ["Recomeçar", "Finalizar"]
-                }).then((willFinalizar) => {
-                  if(willFinalizar) {
-                    swal('Resultados salvos', {
-                      icon: 'success',
-                    }).then(() => {
-                      e.preventDefault();
-                      sendTask();
-                    });
-                  } else {
-                    setTries(1);
-                    setTime(0);
-                    setIsActive(true);
-                  }
-                });
-                stopTime();
-                console.log('time: ', time);
-              }}
-            >CONCLUIR</button>
-          </div>
+                    onDragEnd={() => { draggedAnswer.current = null; }}
+                  >{answer}</Answer>
+                ))}
+              </Answers>
+              <p role="status">{feedback}</p>
+              {response && response !== task.emotion && (
+                <button type="button" className="button button-save" disabled={busy}
+                  onClick={finish}>Concluir atividade</button>
+              )}
+            </>
+          )}
         </Content>
-        <GlobalStyle />
       </Container>
-    </App>
-  )
+      <GlobalStyle />
+    </>
+  );
 }
 
 export default Task3;
