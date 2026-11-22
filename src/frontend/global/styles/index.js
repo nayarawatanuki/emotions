@@ -10,6 +10,17 @@ export default createGlobalStyle`
         box-sizing: border-box;
     }
 
+    :focus-visible {
+        outline: 3px solid #003841;
+        outline-offset: 3px;
+    }
+
+    @media (forced-colors: active) {
+        :focus-visible {
+            outline-color: Highlight;
+        }
+    }
+
     header {
         width: auto;
         margin: 0;

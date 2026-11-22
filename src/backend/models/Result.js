@@ -13,7 +13,6 @@ class Result extends Model {
 
     static associate(models) {
         this.belongsTo(models.Task, { foreignKey: 'task_id', as: 'tasks'});
-        this.belongsTo(models.Kid, { foreignKey: 'kid_id', as: 'kids'});
     }
 }
 

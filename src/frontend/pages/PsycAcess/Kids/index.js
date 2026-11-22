@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'
-import swal from '@sweetalert/with-react'
+import swal from 'sweetalert'
 
 import GlobalStyle from '../../../global/styles';
 import { App, Container, Content, Table } from './styles.js';

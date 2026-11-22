@@ -14,7 +14,7 @@ routes.get('/kids/:kid_id/listTasks', TaskController.list);
 routes.post('/kids/:kid_id/createdTask', multer(multerConfig).single("image"), (req, res) => {
 
     const { location: image = " "} = req.file;
-    const { name, emotion, response1, response2, response3, status, kid_id} = req.body;
+    const { name, emotion, response1, response2, response3, status, kid_id, image_description } = req.body;
     
     const kid = Kid.findByPk(kid_id);
         if(!kid) {
@@ -22,12 +22,12 @@ routes.post('/kids/:kid_id/createdTask', multer(multerConfig).single("image"), (
         }
 
     const task = Task.create(
-        { kid_id, name, emotion, response1, response2, response3, image, status }
+        { kid_id, name, emotion, response1, response2, response3, image, status, image_description: image_description?.trim() || null }
     ).then((response) => {
         console.log('id', response.id);
         return res.json(response);
-    }).catch(() => {
-        console.log(err);
+    }).catch((error) => {
+        console.error(error.message);
             return res.status(400).json({
             err: true,
             message: "erro"

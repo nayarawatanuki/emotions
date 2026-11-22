@@ -8,23 +8,23 @@ import { App, Container, Content } from './styles';
 function Home() {
     return (
         <App>
-            <nav className="navbar navbar-light bg-light">
-                <h4 className="navbar float-center">ACESSOS</h4>
-            </nav>
+            <header className="navbar navbar-light bg-light">
+                <span className="navbar" style={{ fontSize: "1.5rem" }}>ACESSOS</span>
+            </header>
         
             <Container>
                 <Content>
-                    <form> 
+                    <main>
                         <h1>Bem-Vindo(a)!</h1>
                     
-                        <Link to="/KidAcess">
-                            <button type="submit" className="button button-info btn-lg btn-block float-center">Acesso Criança</button>
+                        <Link to="/KidAcess" className="button button-info btn-lg btn-block float-center">
+                            Acesso Criança
                         </Link>
 
-                        <Link to="/PsycAcess">
-                            <button type="submit" className="button button-info btn-lg btn-block float-center">Acesso Psicólogo(a)</button>
+                        <Link to="/PsycAcess" className="button button-info btn-lg btn-block float-center">
+                            Acesso Psicólogo(a)
                         </Link>
-                    </form>
+                    </main>
                 </Content>
                 <GlobalStyle />
             </Container>
