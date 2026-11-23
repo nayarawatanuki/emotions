@@ -10,13 +10,14 @@ export const App = styled.div`
 
 export const Container = styled.div`
     height: auto 100%;
-    margin-top: 4%;
+    margin: 5%;
     display: flex;
     justify-content: center;
     align-items: center;
 `;
 
 export const Content = styled.div`
+    min-width: 0;
     width: auto;
     height: auto 100%;
     margin: auto;
@@ -29,12 +30,12 @@ export const Content = styled.div`
     
 `;
 
-export const Table = styled.table`
-    float: auto;
-    width: auto;
-    height: auto;
-    resize: auto;
-    margin-top: 4%;
-    display: auto;
-    text-align: center;
+export const Title = styled.h1`
+    &.navbar-brand {
+        max-width: 100%;
+        margin-right: 0;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: break-word;
+    }
 `;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import api from '../../../services/api';
 
 import GlobalStyle from '../../../global/styles';
@@ -14,27 +14,22 @@ function KidAcess() {
     const [code, setCode] = useState();
     const history = useHistory();
 
-    async function login(){    
+    const [error, setError] = useState('');
 
-        await api.post(
-            'login',
-            { user, code }
-        )
-        .then(response => 
-            saveId(response.data)            
-        ).catch((error) => {
-            console.error('error', error)
-        })
+    async function handleSubmit(event) {
+        event.preventDefault();
+        setError('');
+        try {
+            const { data } = await api.post('login', { user, code });
+            if (!Number.isInteger(data) || data <= 0) throw new Error('Invalid account');
+            saveId(data);
+            saveName(user);
+            history.push('/Tasks');
+        } catch {
+            setError('Confira seu usuário e código de acesso.');
+        }
     }
 
-    async function handleSubmit(e) {
-        e.preventDefault();
-        await login(); 
-    
-        saveName(user);
-        history.push('/Tasks');
-    }
-    
     return (
         <App>
             <nav className="navbar navbar-light bg-light">
@@ -43,14 +38,15 @@ function KidAcess() {
         
             <Container>
                 <Content>
-                    <form> 
+                    <form onSubmit={handleSubmit}>
                         <h1>Vamos começar?</h1>
 
                         <div className="form-group">
                             <label htmlFor="user">Usuário</label>
                             <input type="text" 
                                 id="user" 
-                                name="user" 
+                                name="user"
+                                autoComplete="username" required
                                 className="form-control" 
                                 placeholder="usuário" 
                                 onChange={(e) => setUser(e.target.value)}
@@ -61,17 +57,19 @@ function KidAcess() {
                             <label htmlFor="code">Senha</label>
                             <input type="number" 
                                 id="code" 
-                                name="code" 
+                                name="code"
+                                required
                                 className="form-control" 
                                 placeholder="senha" 
                                 onChange={(e) => setCode(e.target.value)}
                             /> 
                         </div>
                         
+                        {error && <p role="alert">{error}</p>}
                         <button
                             id="list"
                             className="button button-info btn-lg btn-block float-center"
-                            onClick={handleSubmit}
+                            type="submit"
                         >
                             Entrar
                         </button>

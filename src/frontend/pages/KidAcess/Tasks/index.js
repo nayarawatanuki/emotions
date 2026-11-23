@@ -1,92 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../../services/api';
+import React, { useEffect, useState } from 'react';
 
-import GlobalStyle from '../../../global/styles';
-import { App, Container, Content, Table } from './styles';
-
+import DataTable from '../../../components/DataTable';
 import TaskList from '../../../components/mappings/TaskList';
-import { useKidContext } from "../../../context/kidContext";
-import { Link } from 'react-router-dom';
+import GlobalStyle from '../../../global/styles';
+import { useKidContext } from '../../../context/kidContext';
+import api from '../../../services/api';
+import { App, Container, Content, Title } from './styles';
 
-function Tasks() {
-
-    const [kid, setKid] = useState([]);
+export default function Tasks() {
+    const [child, setChild] = useState(null);
     const [list, setList] = useState([]);
-    const {kid_id, kid_name, kid_photo, savePhoto} = useKidContext();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const { kid_id, kid_name } = useKidContext();
 
     useEffect(() => {
-        if(kid_id && kid_name){
-        api.get(`/${kid_id}/listKid`)
-        .then((response) => {
-            console.log({kids: response.data})
-            setKid([response.data])
-        }).catch((error) => {
-            console.error('error', error)
-        });}
-    },[kid_id, kid_name]);
+        if (!kid_id || !kid_name) return;
+        let active = true;
+        setLoading(true);
+        setError('');
+        Promise.all([
+            api.get(`/${kid_id}/listKid`),
+            api.get(`/tasks/${kid_id}/${encodeURIComponent(kid_name)}/listTasks`),
+        ]).then(([profile, tasks]) => {
+            if (!active) return;
+            setChild(profile.data);
+            setList(tasks.data);
+        }).catch(() => {
+            if (active) setError('Não foi possível carregar as atividades.');
+        }).finally(() => {
+            if (active) setLoading(false);
+        });
+        return () => { active = false; };
+    }, [kid_id, kid_name]);
 
-    useEffect(() => {
-        if(kid_id && kid_name){
-        api.get(`/tasks/${kid_id}/${kid_name}/listTasks`)
-        .then((response) => {
-            console.log({tasks: response.data})
-            setList(response.data)
-        }).catch((error) => {
-            console.error('error', error)
-        });}
-    },[kid_id, kid_name]);
-  
     return (
         <App>
-            <nav className="navbar navbar-light bg-light">
-                <h1></h1>
-                <h5 className="navbar-brand float-center">Atividades da {kid_name}</h5>
-                <h1> </h1>
+            <nav className="navbar navbar-light bg-light justify-content-center">
+                <Title className="navbar-brand">
+                    {child?.name ? `Atividades de ${child.name}` : 'Atividades'}
+                </Title>
             </nav>
-
             <Container>
                 <Content>
-                    <form >
+                    {child && (
                         <div className="form-row">
-                            {kid.map((kid) => {
-                                savePhoto(kid.photo);
-                                return(
-                                    <div className="chip" key={kid.id}>
-                                        <img src={kid.photo} alt="" />
-                                        {kid.name}
-                                    </div>
-                                )
-                            })}
+                            <div className="chip">
+                                {child.photo && <img src={child.photo} alt="" />}
+                                {child.name}
+                            </div>
                         </div>
-
-                        <div style={{marginTop: '4%'}}>
-                            <Table className= "table table-responsive table-selectable">
-                                <thead>
-                                    <tr>
-                                        <th hidden={true}>id</th>
-                                        <th hidden={true}>kid_id</th>
-                                        <th>tarefas</th>
-                                        <th>status</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    {list.map((task) => {
-                                        return (   
-                                            <TaskList key={task.id}
-                                                task={task} 
-                                            />
-                                        );
-                                    })}
-                                </tbody>
-                            </Table>                                
-                        </div>            
-                    </form>
+                    )}
+                    <div style={{ marginTop: '4%' }}>
+                        <DataTable title="Atividades da criança" columns={['Tarefas', 'Situação', 'Ações']}
+                            rows={list} loading={Boolean(kid_id && kid_name && loading)} error={error}
+                            emptyMessage="Nenhuma atividade disponível."
+                            renderRow={(task) => <TaskList key={task.id} task={task} />} />
+                    </div>
                 </Content>
                 <GlobalStyle />
-            </Container>   
+            </Container>
         </App>
     );
 }
-
-export default Tasks;
