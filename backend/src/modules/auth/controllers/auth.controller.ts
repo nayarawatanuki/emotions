@@ -7,6 +7,8 @@ import {
   Post,
   HttpCode,
   Inject,
+  Param,
+  ParseUUIDPipe,
   Req,
   Res,
   UnauthorizedException,
@@ -15,6 +17,7 @@ import type { Request, Response } from 'express';
 import { AUTH_ENVIRONMENT } from '../../../config/auth-environment.js';
 import type { AuthEnvironment } from '../../../config/auth-environment.js';
 import type { AuthenticatedRequest, SessionView } from '../auth.types.js';
+import type { ActivationLink } from '../dto/activation-link.js';
 import { PublicRoute, AllowedRoles } from '../decorators/access.decorator.js';
 import { parseLoginInput } from '../dto/login-input.js';
 import { AuthLoginService } from '../services/auth-login.service.js';
@@ -45,6 +48,26 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<SessionView> {
+    return this.signIn(body, request, response, 'adult');
+  }
+
+  @PublicRoute()
+  @Post('child/login')
+  @HttpCode(200)
+  childLogin(
+    @Body() body: unknown,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<SessionView> {
+    return this.signIn(body, request, response, 'child');
+  }
+
+  private async signIn(
+    body: unknown,
+    request: Request,
+    response: Response,
+    audience: 'adult' | 'child',
+  ) {
     assertAuthOrigin(request, this.environment, true);
     const input = parseLoginInput(body);
     const previous = readSessionCookie(request, this.environment.cookieName);
@@ -52,9 +75,20 @@ export class AuthController {
       input,
       request.socket.remoteAddress,
       previous,
+      audience,
     );
     writeSessionCookie(response, this.environment, result.token);
     return result.session;
+  }
+
+  @AllowedRoles('professional')
+  @Post('children/:id/invitation')
+  issueChildInvitation(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<ActivationLink> {
+    if (!request.auth) throw new UnauthorizedException();
+    return this.activation.issueChild(id, request.auth);
   }
 
   @PublicRoute()
@@ -74,6 +108,16 @@ export class AuthController {
   @AllowedRoles('administrator', 'professional')
   @Get('session')
   session(@Req() request: AuthenticatedRequest): SessionView {
+    return this.currentSession(request);
+  }
+
+  @AllowedRoles('child')
+  @Get('child/session')
+  childSession(@Req() request: AuthenticatedRequest): SessionView {
+    return this.currentSession(request);
+  }
+
+  private currentSession(request: AuthenticatedRequest): SessionView {
     const session = request.auth;
     const token = readSessionCookie(request, this.environment.cookieName);
     if (!session || !token) throw new UnauthorizedException();
@@ -85,7 +129,7 @@ export class AuthController {
     };
   }
 
-  @AllowedRoles('administrator', 'professional')
+  @AllowedRoles('administrator', 'professional', 'child')
   @Post('logout')
   @HttpCode(204)
   async logout(

@@ -232,6 +232,62 @@ describe('child records isolated by professional on real MySQL with rollback', (
       .expect(201);
     return response.body as ChildView;
   }
+  it('issues a one-time child invitation and restricts the resulting session to child access', async () => {
+    const child = await create();
+    const password = 'Synthetic child passphrase 🎀';
+    const invite = (token: string) =>
+      request(app.getHttpServer())
+        .post(`/auth/children/${child.id}/invitation`)
+        .set('Cookie', `emotions_session_local=${token}`)
+        .set('Origin', origin)
+        .set('X-Emotions-Request', '1')
+        .set('X-CSRF-Token', csrfToken(secret, token))
+        .send({});
+    const anonymousPost = (path: string, body: object) =>
+      request(app.getHttpServer())
+        .post(path)
+        .set('Origin', origin)
+        .set('X-Emotions-Request', '1')
+        .send(body);
+    const activate = (url: string) =>
+      anonymousPost('/auth/activate', {
+        token: new URL(url).hash.slice(7),
+        password,
+      });
+    await invite(tokens.second).expect(404);
+    const first = await invite(tokens.first).expect(201);
+    const current = await invite(tokens.first).expect(201);
+    expect(new URL(String(current.body.url)).searchParams.get('profile')).toBe(
+      'child',
+    );
+    await activate(String(first.body.url)).expect(400);
+    await activate(String(current.body.url)).expect(204);
+    await activate(String(current.body.url)).expect(400);
+    await invite(tokens.first).expect(409);
+    const credentials = { username: child.username, password };
+    await anonymousPost('/auth/login', credentials).expect(401);
+    const loggedIn = await anonymousPost(
+      '/auth/child/login',
+      credentials,
+    ).expect(200);
+    expect(loggedIn.body.user).toMatchObject({
+      name: child.name,
+      role: 'child',
+    });
+    const cookie =
+      String(loggedIn.headers['set-cookie']?.[0]).split(';')[0] ?? '';
+    expect(cookie).toMatch(/^emotions_session_local=/);
+    const asChild = (path: string) =>
+      request(app.getHttpServer()).get(path).set('Cookie', cookie);
+    await asChild('/auth/child/session').expect(200);
+    await asChild('/auth/session').expect(403);
+    await asChild('/children').expect(403);
+    await get('/auth/child/session').expect(403);
+    const detail = await get(`/children/${child.id}`).expect(200);
+    await archive(detail.body as ChildView).expect(200);
+    await asChild('/auth/child/session').expect(401);
+    await anonymousPost('/auth/child/login', credentials).expect(401);
+  });
   it('authorizes, bounds and atomically associates a private normalized photo', async () => {
     const child = await create();
     const url = `/children/${child.id}/photo`;

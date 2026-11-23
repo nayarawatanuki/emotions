@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import type { Response } from 'express';
 import { AUTH_ENVIRONMENT } from '../../../config/auth-environment.js';
 import type { AuthEnvironment } from '../../../config/auth-environment.js';
-import type { AdultRole, AuthenticatedRequest } from '../auth.types.js';
+import type { AccountRole, AuthenticatedRequest } from '../auth.types.js';
 import {
   PUBLIC_ROUTE,
   ALLOWED_ROLES,
@@ -35,7 +35,7 @@ export class AuthAccessGuard implements CanActivate {
     const targets = [context.getHandler(), context.getClass()];
     if (this.reflector.getAllAndOverride<boolean>(PUBLIC_ROUTE, targets))
       return true;
-    const roles = this.reflector.getAllAndOverride<AdultRole[]>(
+    const roles = this.reflector.getAllAndOverride<AccountRole[]>(
       ALLOWED_ROLES,
       targets,
     );

@@ -1,11 +1,11 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { AccountEntity } from '../../accounts/entities/account.entity.js';
+import { lockAccounts } from '../../accounts/services/locked-accounts.js';
 import { AuthSessionEntity } from '../entities/auth-session.entity.js';
 import { sessionIdleMilliseconds } from '../auth.types.js';
 import type { SessionContext } from '../auth.types.js';
 import { sessionDigest } from '../security/session-tokens.js';
-import { adultIdentity } from './account-access.js';
+import { childOwnerAccountId, sessionIdentity } from './account-access.js';
 import { databaseNow } from './auth-time.js';
 
 @Injectable()
@@ -19,14 +19,19 @@ export class AuthSessionService {
       .findOneBy({ sessionDigest: sessionDigest(token) });
     if (!found) throw new UnauthorizedException();
     const context = await this.source.transaction(async (manager) => {
-      const account = await manager
-        .getRepository(AccountEntity)
-        .createQueryBuilder('account')
-        .addSelect('account.passwordHash')
-        .where('account.id = :id', { id: found.accountId })
-        .setLock('pessimistic_write')
-        .getOne();
-      const user = account ? await adultIdentity(manager, account) : null;
+      const ownerId = await childOwnerAccountId(manager, found.accountId);
+      const accounts = await lockAccounts(
+        manager,
+        ownerId ? [found.accountId, ownerId] : [found.accountId],
+      );
+      const account = accounts.get(found.accountId);
+      const user = account
+        ? await sessionIdentity(
+            manager,
+            account,
+            ownerId ? accounts.get(ownerId) : undefined,
+          )
+        : null;
       const sessions = manager.getRepository(AuthSessionEntity);
       const session = await sessions.findOne({
         where: { id: found.id },

@@ -2,6 +2,7 @@ import type { ArchiveChildInput } from '../dto/archive-child-input.js';
 import type { Child } from '../entities/child.entity.js';
 import type { Account } from '../../accounts/entities/account.entity.js';
 import { AuthSessionEntity } from '../../auth/entities/auth-session.entity.js';
+import { AccountTokenEntity } from '../../auth/entities/account-token.entity.js';
 import type { EntityManager } from 'typeorm';
 import { childRevision } from './child-revision.js';
 import type { UpdateChildInput } from '../dto/update-child-input.js';
@@ -246,6 +247,17 @@ export class ChildrenService {
         if ((child.archivedAt !== null) === input.archived)
           throw new ConflictException();
         if (input.archived) {
+          await manager
+            .getRepository(AccountTokenEntity)
+            .update(
+              {
+                accountId: account.id,
+                purpose: 'activation',
+                consumedAt: IsNull(),
+                revokedAt: IsNull(),
+              },
+              { revokedAt: now, updatedAt: now },
+            );
           if (account.status === 'active')
             await manager
               .getRepository(AccountEntity)

@@ -3,6 +3,7 @@ import {
   Injectable,
   BadRequestException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { DataSource, IsNull } from 'typeorm';
 import type { EntityManager } from 'typeorm';
@@ -13,6 +14,9 @@ import { AccountEntity } from '../../accounts/entities/account.entity.js';
 import type { Account } from '../../accounts/entities/account.entity.js';
 import { lockAccounts } from '../../accounts/services/locked-accounts.js';
 import { ProfessionalEntity } from '../../professionals/entities/professional.entity.js';
+import { ChildEntity } from '../../children/entities/child.entity.js';
+import { requireChildOwner } from '../../children/services/professional-access.js';
+import type { SessionContext } from '../auth.types.js';
 import { AccountTokenEntity } from '../entities/account-token.entity.js';
 import { AuthSessionEntity } from '../entities/auth-session.entity.js';
 import type { ActivationInput } from '../dto/activation-input.js';
@@ -25,6 +29,7 @@ import { PasswordService } from './password.service.js';
 import { PasswordCapacityService } from './password-capacity.service.js';
 import { AuthRateLimitService } from './auth-rate-limit.service.js';
 import { databaseNow } from './auth-time.js';
+import { activeChildProfile } from './account-access.js';
 
 function isPendingProfessional(
   account: Account | undefined,
@@ -69,6 +74,63 @@ export class AccountActivationService {
   ): Promise<ActivationLink> {
     if (!isPendingProfessional(account) || !isActiveAdministrator(issuer))
       throw new ConflictException();
+    return this.storeInvitation(
+      manager,
+      account,
+      issuer.id,
+      'administrator',
+      now,
+    );
+  }
+
+  async issueChild(
+    id: string,
+    context: SessionContext,
+  ): Promise<ActivationLink> {
+    return this.source.transaction(async (manager) => {
+      const children = manager.getRepository(ChildEntity);
+      const snapshot = await children.findOneBy({ id });
+      if (!snapshot) throw new NotFoundException();
+      const { professional, now, accounts } = await requireChildOwner(
+        manager,
+        context,
+        [snapshot.accountId],
+      );
+      const child = await children.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (
+        !child ||
+        child.accountId !== snapshot.accountId ||
+        child.professionalId !== professional.id
+      )
+        throw new NotFoundException();
+      const account = accounts.get(child.accountId);
+      if (
+        child.archivedAt !== null ||
+        account?.role !== 'child' ||
+        account.status !== 'pending' ||
+        account.passwordHash !== null
+      )
+        throw new ConflictException();
+      return this.storeInvitation(
+        manager,
+        account,
+        context.user.id,
+        'professional',
+        now,
+      );
+    });
+  }
+
+  private async storeInvitation(
+    manager: EntityManager,
+    account: Account,
+    issuerId: string,
+    issuerRole: 'administrator' | 'professional',
+    now: Date,
+  ): Promise<ActivationLink> {
     const tokens = manager.getRepository(AccountTokenEntity);
     await tokens.update(
       {
@@ -84,9 +146,9 @@ export class AccountActivationService {
     await tokens.insert({
       id: randomUUID(),
       accountId: account.id,
-      accountRole: 'professional',
-      issuedByAccountId: issuer.id,
-      issuedByRole: 'administrator',
+      accountRole: account.role,
+      issuedByAccountId: issuerId,
+      issuedByRole: issuerRole,
       purpose: 'activation',
       tokenDigest: opaqueTokenDigest(token),
       createdAt: now,
@@ -96,6 +158,7 @@ export class AccountActivationService {
       revokedAt: null,
     });
     const url = new URL('/activate-account', this.environment.origin);
+    if (account.role === 'child') url.searchParams.set('profile', 'child');
     url.hash = `token=${token}`;
     return { url: url.toString(), expiresAt: expiresAt.toISOString() };
   }
@@ -126,10 +189,20 @@ export class AccountActivationService {
       ]);
       const account = accounts.get(found.accountId);
       const issuer = accounts.get(found.issuedByAccountId);
-      const profile = await manager.getRepository(ProfessionalEntity).findOne({
-        where: { accountId: found.accountId },
-        lock: { mode: 'pessimistic_write' },
-      });
+      const eligible =
+        found.accountRole === 'child'
+          ? found.issuedByRole === 'professional' &&
+            account?.role === 'child' &&
+            account.status === 'pending' &&
+            account.passwordHash === null &&
+            !!(await activeChildProfile(manager, account.id, issuer))
+          : found.issuedByRole === 'administrator' &&
+            isPendingProfessional(account) &&
+            isActiveAdministrator(issuer) &&
+            !!(await manager.getRepository(ProfessionalEntity).findOne({
+              where: { accountId: found.accountId, archivedAt: IsNull() },
+              lock: { mode: 'pessimistic_write' },
+            }));
       const tokens = manager.getRepository(AccountTokenEntity);
       const token = await tokens.findOne({
         where: { id: found.id, tokenDigest: digest, purpose: 'activation' },
@@ -137,13 +210,13 @@ export class AccountActivationService {
       });
       const now = await databaseNow(manager);
       if (
-        !isPendingProfessional(account) ||
-        !isActiveAdministrator(issuer) ||
-        !profile ||
-        profile.archivedAt !== null ||
+        !eligible ||
+        !account ||
         !token ||
         token.accountId !== found.accountId ||
         token.issuedByAccountId !== found.issuedByAccountId ||
+        token.accountRole !== found.accountRole ||
+        token.issuedByRole !== found.issuedByRole ||
         token.consumedAt !== null ||
         token.revokedAt !== null ||
         token.expiresAt <= now

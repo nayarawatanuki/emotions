@@ -1,10 +1,11 @@
 import type { Request } from 'express';
 
 export type AdultRole = 'administrator' | 'professional';
+export type AccountRole = AdultRole | 'child';
 export interface AuthUser {
   id: string;
   name: string;
-  role: AdultRole;
+  role: AccountRole;
 }
 export interface SessionContext {
   id: string;
