@@ -5,22 +5,16 @@ export const TaskContext = React.createContext()
 const TaskProvider = ({ children }) => {
     const [task_id, setTask_id] = useState();
 
-    console.log("task ", task_id)
-
     useEffect(() => {
         const savedTask = window.sessionStorage.getItem('task');
         if(savedTask) {
             const {id} = JSON.parse(savedTask);
-            console.log('id: ', id);
             setTask_id(id);
         }
     }, [])
 
     function saveId(id) {
-        const savedTask = window.sessionStorage.getItem('task');
-        const savedKidJSON = JSON.parse(savedTask) || {}
-        
-        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidJSON, id}));
+        window.sessionStorage.setItem('task', JSON.stringify({ id }));
         setTask_id(id);
     }
 

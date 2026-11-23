@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import swal from "sweetalert";
 import { Link, useHistory } from "react-router-dom";
-import { useKidContext } from "../../../context/kidContext";
 import { useTaskContext } from "../../../context/taskContext";
 
 function TaskList({ task }){ 
 
   
-  const {kid_id} = useKidContext();
   const {saveId} = useTaskContext();
   const [name, setName] = useState(task.name);
   const [status, setStatus] = useState(task.status);
@@ -20,15 +18,14 @@ function TaskList({ task }){
     history.push({ pathname: "/Task3", search: `${task.id}`});
   }
   return(
-    <tr id="rows" >
-      <td className="fit-content" hidden={true}>{task.id}</td>
-      <td className="fit-content" hidden={true}> {kid_id}</td>
+    <tr>
       <td className="fit-content"> {name}</td>
       <td className="fit-content"> {status}</td>
 
       <td>
         <button
-          id="list"
+          type="button"
+          aria-label={`Abrir atividade: ${name}`}
           className="btn btn-sm btn-info d-inline-block mr-1"
           onClick={(e) => {
             saveId(`${task.id}`)
@@ -40,7 +37,7 @@ function TaskList({ task }){
             }}
           }
         >
-          <i className="fas fa-play"></i>
+          <i className="fas fa-play" aria-hidden="true" />
         </button>
       </td>
     </tr>   

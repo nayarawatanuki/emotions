@@ -23,7 +23,6 @@ function addTask3 () {
 
   const {kid_id} = useKidContext();
 
-  const [mess, setMess] = useState([]);
 
   const history = useHistory();
   const activityId = useRef(null);
@@ -57,31 +56,16 @@ function addTask3 () {
       }))
   }
 
-  async function createdActivity() {
-    
-
-    var data = new FormData();
-
-    data.append('kid_id', kid_id);
-    
-    data.append('name', document.getElementById('name').value);
-    data.append('emotion', document.getElementById('emotion').value);
-    data.append('response1', document.getElementById('response1').value);
-    data.append('response2', document.getElementById('response2').value);
-    data.append('response3', document.getElementById('response3').value);
-    data.append('image_description', document.getElementById('image-description').value.trim());
-    data.append('image', uploadedFile.image, uploadedFile.name);
-    data.append('status', 'Não realizada');
-
-    for (var key of data.entries()) {
-      console.log(key[0] + ': ' + key[1]);
-    }
-
-
+  async function createdActivity(form) {
+    const data = new FormData(form);
+    data.delete('photo');
+    data.delete('message');
+    data.set('image', uploadedFile.image, uploadedFile.name);
+    data.set('status', 'Não realizada');
     const { data: activity } = await api.post(`/kids/${kid_id}/createdTask`, data);
     return activity.id;
   }
-  
+
   async function handleReward(image) {
     const addedFile = image.map(image => ({
       image,
@@ -109,30 +93,16 @@ function addTask3 () {
     );
   }
 
-  async function createdReward(task) {
-
-    var data = new FormData();
-
-    data.append('task_id', task);
-    
-    data.append('photo', rewardFile.image, rewardFile.name);
-    data.append('message', mess);
-
-    for (var key of data.entries()) {
-      console.log(key[0] + ': ' + key[1]);
-    }
-
-    return api.post(`/tasks/${task}/createdReward`, data)
-    .then((response) => {
-      console.log(response.data)
-    })
+  async function createdReward(task, message) {
+    const data = new FormData();
+    data.set('photo', rewardFile.image, rewardFile.name);
+    data.set('message', message);
+    await api.post(`/tasks/${task}/createdReward`, data);
   }
 
   async function sendTask(event) {
     event.preventDefault();
     const form = event.currentTarget;
-    const description = form.elements.image_description;
-    description.value = description.value.trim();
     if (saving.current || !form.reportValidity()) return;
     if (!uploadedFile || !rewardFile) {
       await swal('Escolha a imagem da atividade e a imagem da recompensa.');
@@ -141,8 +111,8 @@ function addTask3 () {
     saving.current = true;
     setBusy(true);
     try {
-      if (activityId.current === null) activityId.current = await createdActivity();
-      await createdReward(activityId.current);
+      if (activityId.current === null) activityId.current = await createdActivity(form);
+      await createdReward(activityId.current, form.elements.message.value);
       history.push('/Kids');
     } catch {
       await swal(activityId.current === null
@@ -157,9 +127,7 @@ function addTask3 () {
     return (
       <App>
         <nav className="navbar navbar-light bg-light">
-          <Link to="/Kids">
-              <button type="button" className="button button-info">Voltar</button>
-          </Link>
+          <Link to="/Kids" className="button button-info tcc-button-link">Voltar</Link>
           <h5 className="navbar-brand float-center">Adicionando atividade</h5>
           <h1> </h1>
         </nav>
@@ -186,15 +154,6 @@ function addTask3 () {
                 { !!uploadedFilePreview.length && (
                   <FileList file={uploadedFilePreview} />
                 )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="image-description">Descrição da imagem (obrigatória)</label>
-                <p id="image-description-help">
-                  Descreva os sinais visíveis, como a expressão ou a postura. Evite dizer o nome da emoção.
-                </p>
-                <textarea id="image-description" name="image_description" className="form-control"
-                  aria-describedby="image-description-help" required />
               </div>
 
               <p style={{fontWeight: 'bold'}}>Entre as alternativas abaixo, insira UMA correta:</p>
@@ -225,13 +184,11 @@ function addTask3 () {
 
               <div className="form-group">
                   <label htmlFor="message">Mensagem de resposta certa</label>
-                  <input type="text" id="message" name="message" className="form-control" onChange={(e) => setMess(e.target.value)}/>
+                  <input type="text" id="message" name="message" className="form-control"/>
               </div>
 
               <div>
-                <Link to="/Kids">
-                  <button className="button button-danger">Cancelar</button>
-                </Link>
+                <Link to="/Kids" className="button button-danger tcc-button-link">Cancelar</Link>
 
                 <button type="submit" className="button button-success" disabled={busy}>Criar atividade</button>
               </div>

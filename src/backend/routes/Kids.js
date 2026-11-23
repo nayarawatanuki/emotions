@@ -15,7 +15,9 @@ routes.post('/login', Kids.login);
 
 routes.post('/createdKid', multer(multerConfig).single("photo"), (req, res) => {
     
-    const {key: key,  location: photo} = req.file;
+    const { key, location } = req.file || {};
+    const photo = location || (key && `/kidPhoto/${encodeURIComponent(key)}`);
+    if (!photo) return res.status(400).json({ error: 'Image required' });
     const { treatment, name, user, code, rate, birth, parent, note } = req.body;
     //console.log("test ", req.body)
 
@@ -27,7 +29,6 @@ routes.post('/createdKid', multer(multerConfig).single("photo"), (req, res) => {
         return res.json(response);
         
     }).catch(() => {
-        console.log(err);
             return res.status(400).json({
             err: true,
             message: "erro"

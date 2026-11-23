@@ -44,4 +44,15 @@
     background-color: white;
     color: black;
     border: 2px solid #555555;
-  }  
+  }
+a.tcc-button-link {
+    display: inline-block;
+    color: #000;
+    line-height: normal;
+    white-space: nowrap;
+}
+
+a.tcc-button-link:hover {
+    color: #000;
+    text-decoration: none;
+}

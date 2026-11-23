@@ -1,12 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import swal from 'sweetalert';
 import { useHistory } from 'react-router-dom';
+import '../../../global/styles/fireworks/style.css';
+import './reward.css';
 
 import api from '../../../services/api';
 import GlobalStyle from '../../../global/styles';
-import { Container, Content, Answer, Answers, ActivityImage } from './styles';
+import { Header, Container, Content, Answer, Answers, ActivityImage, FinishButton } from './styles';
 import { useKidContext } from '../../../context/kidContext';
 import { useTaskContext } from '../../../context/taskContext';
+
+function rewardConfetti() {
+  const confetti = document.createElement('div');
+  confetti.className = 'pyro';
+  confetti.setAttribute('aria-hidden', 'true');
+  for (const position of ['before', 'after']) {
+    const particles = document.createElement('div');
+    particles.className = position;
+    confetti.appendChild(particles);
+  }
+  return confetti;
+}
 
 function Task3() {
   const { kid_name } = useKidContext();
@@ -52,12 +66,19 @@ function Task3() {
       return;
     }
 
+    setFeedback('');
     if (showReward) {
       const rewards = await api.get(`/tasks/${task_id}/listRewards`)
         .then(({ data }) => data)
         .catch(() => []);
       for (const reward of rewards) {
-        await swal({ title: reward.message, icon: reward.photo, button: 'Continuar' });
+        await swal({
+          title: reward.message,
+          icon: reward.photo,
+          content: rewardConfetti(),
+          className: 'tcc-reward-modal',
+          button: 'OK',
+        });
       }
       if (!rewards.length) await swal('Resposta correta! Resultado salvo.');
     } else {
@@ -79,28 +100,32 @@ function Task3() {
   }
 
   async function finish() {
+    if (!response) {
+      setFeedback('Escolha uma emoção.');
+      return;
+    }
     const confirmed = await swal({
-      title: 'Finalizar atividade?',
-      text: 'Depois de finalizar, você não poderá refazer esta atividade.',
-      buttons: ['Continuar atividade', 'Finalizar']
+      title: 'Tem certeza que deseja finalizar a tarefa?',
+      text: 'Depois de finalizar, você não poderá refazer a tarefa.',
+      icon: 'warning',
+      buttons: ['Recomeçar', 'Finalizar']
     });
     if (confirmed) saveActivityResult(response, attempts, false);
   }
 
   return (
     <>
-      <header className="navbar navbar-light bg-light">
+      <Header className="navbar navbar-light bg-light">
         <button type="button" className="button button-danger" disabled={busy}
-          onClick={() => history.push('/Tasks')}>Sair da atividade</button>
-      </header>
+          aria-label="Sair da atividade" onClick={() => history.push('/Tasks')}>SAIR</button>
+        <h1>Associando palavra a imagem &gt;&gt;</h1>
+      </Header>
       <Container>
         <Content>
-          <h1>Associe a emoção à imagem</h1>
           {loadError && <p role="alert">Não foi possível carregar a atividade.</p>}
           {!task && !loadError && <p role="status">Carregando atividade…</p>}
           {task && (
             <>
-              <p>Arraste ou clique na emoção que combina com a imagem. Se usar o teclado, vá até a opção com Tab e pressione Enter.</p>
               <ActivityImage src={task.image}
                 alt={task.image_description || 'Imagem da atividade sem descrição disponível.'}
                 onDragOver={(event) => {
@@ -113,8 +138,7 @@ function Task3() {
                   chooseAnswer(answer);
                 }}
               />
-              <Answers>
-                <legend>Qual emoção a imagem representa?</legend>
+              <Answers aria-label="Qual é a emoção?">
                 {[task.response1, task.response2, task.response3].map((answer, index) => (
                   <Answer key={index} type="button" aria-disabled={busy}
                     onClick={() => chooseAnswer(answer)}
@@ -127,11 +151,9 @@ function Task3() {
                   >{answer}</Answer>
                 ))}
               </Answers>
-              <p role="status">{feedback}</p>
-              {response && response !== task.emotion && (
-                <button type="button" className="button button-save" disabled={busy}
-                  onClick={finish}>Concluir atividade</button>
-              )}
+              <FinishButton type="button" className="button" disabled={busy}
+                onClick={finish}>CONCLUIR</FinishButton>
+              <p className="tcc-task-feedback" role="status">{feedback}</p>
             </>
           )}
         </Content>

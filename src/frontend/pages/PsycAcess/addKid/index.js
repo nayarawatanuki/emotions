@@ -47,52 +47,40 @@ class addKid extends Component {
     });
   }
 
-  createdKid = () => {
-    
-    var data = new FormData();
-
-    data.append('treatment', document.getElementById('treatment').value);
-    data.append('name', document.getElementById('name').value);
-    data.append('user', document.getElementById('user').value);
-    data.append('code', document.getElementById('code').value);
-    data.append('rate', document.getElementById('rate').value);
-    data.append('birth', document.getElementById('birth').value);
-    
-    data.append('parent', document.getElementById('parent').value);
-    data.append('note', document.getElementById('note').value);
-    data.append('photo', this.state.uploadedFile.photo, this.state.uploadedFile.name);
-
-    for (var key of data.entries()) {
-      console.log(key[0] + ': ' + key[1]);
+  createdKid = async (event) => {
+    event.preventDefault();
+    if (this.state.saving) return;
+    const { uploadedFile } = this.state;
+    if (!uploadedFile) {
+      this.setState({ error: 'Escolha a foto da criança.' });
+      return;
     }
-
-    api.post('createdKid', data)
+    const data = new FormData(event.currentTarget);
+    data.set('treatment', data.has('treatment') ? 'on' : 'off');
+    data.set('photo', uploadedFile.photo, uploadedFile.name);
+    this.setState({ saving: true, error: '' });
+    try {
+      await api.post('createdKid', data);
+      this.props.history.push('/Kids');
+    } catch {
+      this.setState({ saving: false, error: 'Não foi possível cadastrar a criança.' });
+    }
   }
 
   render() {
-    const { uploadedFilePreview } = this.state;
+    const { uploadedFilePreview, saving, error } = this.state;
     return (
       <App>
         <nav className="navbar navbar-light bg-light">
-          <Link to="/Kids">
-              <button type="button" className="button button-info">Voltar</button>
-          </Link>
+          <Link to="/Kids" className="button button-info tcc-button-link">Voltar</Link>
           <h5 className="navbar-brand float-center">Adicionando criança</h5>
           <h1> </h1>
         </nav>
         <Container>
           <Content>
-            <form encType='multipar/form-data'>
+            <form onSubmit={this.createdKid}>
               <div className="form-check">
-                <input type="checkbox" id="treatment" defaultValue="off"
-                className="form-check-input"
-                onChange={(e)=>{
-                  if(e.target.checked !== true){
-                    e.target.value = "off"
-                  }else{
-                    e.target.value = "on"
-                  }
-                }} />
+                <input type="checkbox" id="treatment" name="treatment" className="form-check-input" />
                 <label htmlFor="treatment" style={{fontSize: '14px'}}>Tratamento ativo</label>
               </div>       
 
@@ -148,13 +136,10 @@ class addKid extends Component {
                 </div>
 
                 <div>
-                  <Link to="/Kids">
-                    <button className="button button-danger">Cancelar</button>
-                  </Link>
+                  <Link to="/Kids" className="button button-danger tcc-button-link">Cancelar</Link>
 
-                  <Link to="/Kids">
-                    <button onClick ={this.createdKid} className="button button-success">Adicionar</button>
-                  </Link>
+                  <button type="submit" className="button button-success" disabled={saving}>Adicionar</button>
+                  {error && <p role="alert">{error}</p>}
                 </div>
               </div>
             </form>

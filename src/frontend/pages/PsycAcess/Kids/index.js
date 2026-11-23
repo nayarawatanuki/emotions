@@ -1,9 +1,10 @@
+import DataTable from '../../../components/DataTable';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'
 import swal from 'sweetalert'
 
 import GlobalStyle from '../../../global/styles';
-import { App, Container, Content, Table } from './styles.js';
+import { App, Container, Content } from './styles.js';
 
 import api from '../../../services/api';
 import KidList from '../../../components/mappings/KidList'
@@ -11,11 +12,19 @@ import KidList from '../../../components/mappings/KidList'
 function Kids() {
     const [kids, setKids] = useState([]);
 
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
     useEffect(() => {
-        api.get('/listKids')
-        .then((response) => {
-          setKids(response.data)
+        let active = true;
+        api.get('/listKids').then(({ data }) => {
+            if (active) setKids(data);
+        }).catch(() => {
+            if (active) setError('Não foi possível carregar as fichas.');
+        }).finally(() => {
+            if (active) setLoading(false);
         });
+        return () => { active = false; };
     }, []);
 
     async function updateKid(){
@@ -85,38 +94,13 @@ function Kids() {
                                 alt="Person"/>
                             Crianças
                         </div>
-                        <Link to="/addKid">
-                            <button  className="btn btn-outline-info">+</button>
-                        </Link>
-                        <Table className= "table table-responsive table-selectable">
-                            <thead>
-                                <tr>
-                                    <th>foto</th>
-                                    <th>tratamento</th>
-                                    <th>usuário</th>
-                                    <th>código</th>
-                                    <th>nome</th>
-                                    <th>grau</th>
-                                    <th>nascimento</th>
-                                    <th>responsável</th>
-                                    <th>observações</th>
-                                    <th>atividades</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            
-                            {kids.map((kid) => {
-                                return (
-                                    <tbody key={kid.id}>
-                                        <KidList kid={kid} 
-                                            updateKid={updateKid} 
-                                            deleteKid={deleteKid} 
-                                        />
-                                    </tbody>
-                                );
-                            })}
-                                  
-                        </Table>
+                        <Link to="/addKid" className="btn btn-outline-info" aria-label="Adicionar criança">+</Link>
+                        <DataTable title="Crianças"
+                            columns={['Foto', 'Tratamento', 'Usuário', 'Código', 'Nome', 'Grau', 'Nascimento',
+                                'Responsável', 'Observações', 'Atividades', 'Ações']}
+                            rows={kids} loading={loading} error={error} emptyMessage="Nenhuma criança cadastrada."
+                            renderRow={(kid) => <KidList key={kid.id} kid={kid} updateKid={updateKid}
+                                deleteKid={deleteKid} />} />
                     </form>
                 </Content>
                 <GlobalStyle />
