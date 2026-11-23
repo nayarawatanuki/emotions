@@ -12,27 +12,21 @@ function PsycLogin() {
     const [password, setPassword] = useState();
     const history = useHistory();
     
-    async function login(){    
+    const [error, setError] = useState('');
 
-        await api.post(
-            'adminLogin',
-            { user, password }
-        )
-        .then(response => {
-            return res.json(response.data)
-            //window.alert('deu certo')
-        }).catch((error) => {
-            console.error('error', error)
-        })
+    async function handleSubmit(event) {
+        event.preventDefault();
+        setError('');
+        try {
+            await api.post('adminLogin', { user, password });
+            history.push('/Kids');
+        } catch (requestError) {
+            setError(requestError.response?.status === 401
+                ? 'Usuário ou senha inválidos.'
+                : 'Não foi possível entrar. Tente novamente.');
+        }
     }
 
-    async function handleSubmit(e) {
-        e.preventDefault();
-        await login(); 
-    
-        history.push('/Kids');
-    }
-    
     return (
         <App>
             <nav className="navbar navbar-light bg-light">
@@ -41,14 +35,16 @@ function PsycLogin() {
         
             <Container>
                 <Content>
-                    <form> 
+                    <form onSubmit={handleSubmit}>
                         <h1>Vamos começar?</h1>
 
                         <div className="form-group">
                             <label htmlFor="user">Usuário</label>
                             <input type="text" 
                                 id="user" 
-                                name="user" 
+                                name="user"
+                                autoComplete="username"
+                                required
                                 className="form-control" 
                                 placeholder="usuário" 
                                 onChange={(e) => setUser(e.target.value)}
@@ -59,17 +55,20 @@ function PsycLogin() {
                             <label htmlFor="code">Senha</label>
                             <input type="password" 
                                 id="code" 
-                                name="code" 
+                                name="password"
+                                autoComplete="current-password"
+                                required
                                 className="form-control" 
                                 placeholder="senha" 
                                 onChange={(e) => setPassword(e.target.value)}
                             /> 
                         </div>
                         
+                        {error && <p role="alert">{error}</p>}
                         <button
                             id="list"
                             className="button button-info btn-lg btn-block float-center"
-                            onClick={handleSubmit}
+                            type="submit"
                         >
                             Entrar
                         </button>

@@ -1,88 +1,62 @@
 const Admin = require('../models/Admin');
+const { hashPassword, verifyPassword, usablePassword } = require('../auth/password');
 
 module.exports = {
 
-    async list(req, res) {
-        const kids = await Admin.findAll();
-
-        return res.json(kids);
+    async list(req, res, next) {
+        try {
+            const admins = await Admin.findAll({ attributes: ['id', 'name', 'user'] });
+            return res.json(admins);
+        } catch (error) {
+            return next(error);
+        }
     },
 
-    async login(req, res) {
-
-        const {
-            user,
-            password,
-        } = req.body;
-
-        const admin = await Admin.findOne({
-            where: {
-                user: user,
-                password: password
-            }
-        });
-        if (admin === null) {
-            console.log('Not found!');
-        } else {
-            console.log(admin.id);
+    async login(req, res, next) {
+        const { user, password } = req.body || {};
+        if (typeof user !== 'string' || !usablePassword(password)) {
+            return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
         }
 
-        return res.json(admin.id);
+        try {
+            const admin = await Admin.findOne({ where: { user } });
+            if (!admin || !await verifyPassword(password, admin.password)) {
+                return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
+            }
+            return res.json(admin.id);
+        } catch (error) {
+            return next(error);
+        }
     },
 
     async create(req, res) {
+        const { name, user, password } = req.body || {};
+        if (!usablePassword(password) || Array.from(password).length < 15) {
+            return res.status(400).json({ error: 'Use uma senha com pelo menos 15 caracteres.' });
+        }
 
-        const { name, user, password } = req.body;
-        //console.log("test ", req.body)
-
-
-        const admin = Admin.create(
-            { name, user, password }
-        ).then((response) => {
-            return res.json(response);
-            
-        }).catch(() => {
-            console.log(err);
-                return res.status(400).json({
-                err: true,
-                message: "erro"
-            }) 
-        });
+        try {
+            const admin = await Admin.create({ name, user, password: await hashPassword(password) });
+            return res.json({ id: admin.id, name: admin.name, user: admin.user });
+        } catch {
+            return res.status(400).json({ error: 'Não foi possível cadastrar o profissional.' });
+        }
     },
 
     async update(req, res) {
+        const { name, user, password } = req.body || {};
+        const changes = { name, user };
+        if (password !== undefined) {
+            if (!usablePassword(password) || Array.from(password).length < 15) {
+                return res.status(400).json({ error: 'Use uma senha com pelo menos 15 caracteres.' });
+            }
+        }
 
-        const {
-            id
-        } = req.params;
-        const {
-            name,
-            user,
-            password
-        } = req.body;
-
-        console.log('controller update admin', req.params, req.body)
         try {
-            const admin = await Admin.update({
-                    name,
-                    user,
-                    password
-                },
-
-                {
-                    where: {
-                        id: id
-                    }
-                }
-            )
-
-            return res.json(admin);
-
-        } catch (error) {
-            console.log(error.message);
-            res.json({
-                error: true
-            });
+            if (password !== undefined) changes.password = await hashPassword(password);
+            return res.json(await Admin.update(changes, { where: { id: req.params.id } }));
+        } catch {
+            return res.status(400).json({ error: 'Não foi possível atualizar o profissional.' });
         }
     },
 
