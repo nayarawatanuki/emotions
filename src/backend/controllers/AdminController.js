@@ -1,4 +1,5 @@
 const Admin = require('../models/Admin');
+const { startSession } = require('../auth/session');
 const { hashPassword, verifyPassword, usablePassword } = require('../auth/password');
 
 module.exports = {
@@ -23,7 +24,7 @@ module.exports = {
             if (!admin || !await verifyPassword(password, admin.password)) {
                 return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
             }
-            return res.json(admin.id);
+            return startSession(req, res, 'professional', admin.id);
         } catch (error) {
             return next(error);
         }

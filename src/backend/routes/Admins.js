@@ -1,17 +1,18 @@
 const express = require('express');
+const { limitLogin, authenticated, professional } = require('../auth/session');
 const routes = express.Router();
 
 const Admin = require('../controllers/AdminController');
 
 //FUNCTIONS
-routes.get('/adminList', Admin.list);
+routes.get('/adminList', authenticated, professional, Admin.list);
 
-routes.post('/adminLogin', Admin.login);
+routes.post('/adminLogin', limitLogin, Admin.login);
 
-routes.post('/adminCreated', Admin.create);
+routes.post('/adminCreated', authenticated, professional, Admin.create);
 
-routes.put('/adminUpdate/:id', Admin.update);
+routes.put('/adminUpdate/:id', authenticated, professional, Admin.update);
 
-routes.delete('/adminDelete/:id', Admin.delete);
+routes.delete('/adminDelete/:id', authenticated, professional, Admin.delete);
 
 module.exports = routes;

@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticated, ownChild, professional } = require('../auth/session');
 const routes = express.Router();
 
 const multer = require('multer');
@@ -9,11 +10,12 @@ const Task = require('../models/Task');
 const Kid = require('../models/Kid');
 
 //FUNCTIONS
-routes.get('/kids/:kid_id/listTasks', TaskController.list);
+routes.get('/kids/:kid_id/listTasks', authenticated, ownChild, TaskController.list);
 
-routes.post('/kids/:kid_id/createdTask', multer(multerConfig).single("image"), (req, res) => {
+routes.post('/kids/:kid_id/createdTask', authenticated, professional, multer(multerConfig).single("image"), (req, res) => {
 
-    const { location: image = " "} = req.file;
+    const { location, key } = req.file || {};
+    const image = location || (key ? '/taskImage/' + encodeURIComponent(key) : null);
     const { name, emotion, response1, response2, response3, status, kid_id, image_description } = req.body;
     
     const kid = Kid.findByPk(kid_id);
@@ -35,8 +37,8 @@ routes.post('/kids/:kid_id/createdTask', multer(multerConfig).single("image"), (
     });
 })
 
-routes.put('/updatedTask/:id', TaskController.update);
+routes.put('/updatedTask/:id', authenticated, professional, TaskController.update);
 
-routes.delete('/deletedTask/:id', TaskController.delete);
+routes.delete('/deletedTask/:id', authenticated, professional, TaskController.delete);
 
 module.exports = routes;

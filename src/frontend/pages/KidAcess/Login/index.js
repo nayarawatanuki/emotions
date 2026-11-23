@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import api from '../../../services/api';
 
 import GlobalStyle from '../../../global/styles';
@@ -14,27 +14,23 @@ function KidAcess() {
     const [code, setCode] = useState();
     const history = useHistory();
 
-    async function login(){    
+    const [error, setError] = useState('');
 
-        await api.post(
-            'login',
-            { user, code }
-        )
-        .then(response => 
-            saveId(response.data)            
-        ).catch((error) => {
-            console.error('error', error)
-        })
+    async function handleSubmit(event) {
+        event.preventDefault();
+        setError('');
+        try {
+            const { data } = await api.post('login', { user, code });
+            saveId(data);
+            saveName(user);
+            history.push('/Tasks');
+        } catch (requestError) {
+            setError(requestError.response?.status === 429
+                ? 'Muitas tentativas. Tente novamente mais tarde.'
+                : 'Não foi possível entrar. Confira seu usuário e código.');
+        }
     }
 
-    async function handleSubmit(e) {
-        e.preventDefault();
-        await login(); 
-    
-        saveName(user);
-        history.push('/Tasks');
-    }
-    
     return (
         <App>
             <nav className="navbar navbar-light bg-light">
@@ -43,7 +39,7 @@ function KidAcess() {
         
             <Container>
                 <Content>
-                    <form> 
+                    <form onSubmit={handleSubmit}>
                         <h1>Vamos começar?</h1>
 
                         <div className="form-group">
@@ -59,7 +55,7 @@ function KidAcess() {
 
                         <div className="form-group">
                             <label htmlFor="code">Senha</label>
-                            <input type="number" 
+                            <input type="password" inputMode="numeric"
                                 id="code" 
                                 name="code" 
                                 className="form-control" 
@@ -68,10 +64,11 @@ function KidAcess() {
                             /> 
                         </div>
                         
+                        {error && <p role="alert">{error}</p>}
                         <button
                             id="list"
                             className="button button-info btn-lg btn-block float-center"
-                            onClick={handleSubmit}
+                            type="submit"
                         >
                             Entrar
                         </button>

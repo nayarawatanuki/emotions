@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../services/api';
+import api, { legacyMediaUrl } from '../../../services/api';
 
 import GlobalStyle from '../../../global/styles';
 import { App, Container, Content, Table } from './styles';
@@ -52,7 +52,7 @@ function Tasks() {
                                 savePhoto(kid.photo);
                                 return(
                                     <div className="chip" key={kid.id}>
-                                        <img src={kid.photo} alt="" />
+                                        <img src={legacyMediaUrl(kid.photo)} alt="" />
                                         {kid.name}
                                     </div>
                                 )

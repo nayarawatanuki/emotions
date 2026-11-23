@@ -1,4 +1,5 @@
 const express = require('express');
+const { authenticated, ownTask, professional } = require('../auth/session');
 const routes = express.Router();
 
 const multer = require('multer');
@@ -9,11 +10,12 @@ const Task = require('../models/Task');
 const Reward = require('../models/Reward');
 
 //FUNCTIONS
-routes.get('/tasks/:task_id/listRewards',  RewardController.list);
+routes.get('/tasks/:task_id/listRewards', authenticated, ownTask, RewardController.list);
 
-routes.post('/tasks/:task_id/createdReward', multer(multerConfig).single("photo"), (req, res) => {
+routes.post('/tasks/:task_id/createdReward', authenticated, professional, multer(multerConfig).single("photo"), (req, res) => {
 
-    const { location: photo = " "} = req.file;
+    const { location, key } = req.file || {};
+    const photo = location || (key ? '/taskImage/' + encodeURIComponent(key) : null);
     const { message, task_id } = req.body;
     
     const task = Task.findByPk(task_id);
@@ -35,8 +37,8 @@ routes.post('/tasks/:task_id/createdReward', multer(multerConfig).single("photo"
     });
 })
 
-routes.put('/updatedTaskReward/:id', RewardController.update);
+routes.put('/updatedTaskReward/:id', authenticated, professional, RewardController.update);
 
-routes.delete('/deletedTaskReward/:id', RewardController.delete);
+routes.delete('/deletedTaskReward/:id', authenticated, professional, RewardController.delete);
 
 module.exports = routes;

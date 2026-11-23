@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import swal from 'sweetalert';
 import { useHistory } from 'react-router-dom';
 
-import api from '../../../services/api';
+import api, { legacyMediaUrl } from '../../../services/api';
 import GlobalStyle from '../../../global/styles';
 import { Container, Content, Answer, Answers, ActivityImage } from './styles';
 import { useKidContext } from '../../../context/kidContext';
@@ -57,7 +57,7 @@ function Task3() {
         .then(({ data }) => data)
         .catch(() => []);
       for (const reward of rewards) {
-        await swal({ title: reward.message, icon: reward.photo, button: 'Continuar' });
+        await swal({ title: reward.message, icon: legacyMediaUrl(reward.photo), button: 'Continuar' });
       }
       if (!rewards.length) await swal('Resposta correta! Resultado salvo.');
     } else {
@@ -101,7 +101,7 @@ function Task3() {
           {task && (
             <>
               <p>Arraste ou clique na emoção que combina com a imagem. Se usar o teclado, vá até a opção com Tab e pressione Enter.</p>
-              <ActivityImage src={task.image}
+              <ActivityImage src={legacyMediaUrl(task.image)}
                 alt={task.image_description || 'Imagem da atividade sem descrição disponível.'}
                 onDragOver={(event) => {
                   if (draggedAnswer.current) event.preventDefault();

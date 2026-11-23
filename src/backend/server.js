@@ -4,6 +4,7 @@ const express = require('express');
 const path = require("path");
 const cors = require('cors');
 require('./db');
+const { origin, requestOrigin, endSession, authenticated, ownMedia } = require('./auth/session');
 
 const routesAdmin = require('./routes/Admins');
 const routesKid = require('./routes/Kids');
@@ -14,18 +15,22 @@ const routesTaskResult = require('./routes/Results');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: origin || false, credentials: true }));
+app.use(requestOrigin);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
     "/kidPhoto",
+    authenticated, ownMedia,
     express.static(path.resolve(__dirname, "./uploads/images/kidPhoto"))
 );
 app.use(
     "/taskImage",
+    authenticated, ownMedia,
     express.static(path.resolve(__dirname, "./uploads/images/taskImage"))
 );
 
+app.post('/logout', endSession);
 app.use(routesAdmin);
 app.use(routesKid);
 app.use(routesTask);
