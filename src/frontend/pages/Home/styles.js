@@ -23,18 +23,6 @@ export const Content = styled.div`
     }
 `;
 
-export const NavBrand = styled.div`
-    display: flex;
-    align-items: center;
-`;
-
-export const SpectrumRibbon = styled.img`
-    display: block;
-    width: 2.5rem;
-    height: auto;
-    transform: rotate(-18deg);
-`;
-
 export const EmotionPieces = styled.div`
     display: flex;
     gap: 0.45rem;

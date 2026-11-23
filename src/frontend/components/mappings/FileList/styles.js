@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 
 export const Container = styled.ul`
-    margin-top: 20px;
+    margin-top: 1rem;
+    list-style: none;
 
     li {
         display: flex;
@@ -18,33 +19,30 @@ export const Container = styled.ul`
 export const FileInfo = styled.div`
     display: flex;
     align-items: center;
+    min-width: 0;
+    overflow-wrap: break-word;
 
     div {
         display: flex;
         flex-direction: column;
 
         span {
-            color: #999;
-            margin-top: 5px;
-
-            button {
-                border: 0;
-                background: transparent;
-                color: #e57878;
-                margin-left= 5px;
-                cursor: pointer;
-            }
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            color: #435a60;
+            margin-top: 0.35rem;
         }
+
     }
 `;
 
-export const Preview = styled.div`
+export const Preview = styled.img`
+    flex: 0 0 36px;
     width: 36px;
     height: 36px;
     border-radius: 5px;
-    background-image: url(${props => props.src});
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: 50% 50%;
+    object-fit: cover;
     margin-right: 10px;
 `;

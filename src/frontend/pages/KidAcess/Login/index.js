@@ -1,10 +1,11 @@
+import FormField from '../../../components/FormField';
 import React, { useState } from "react";
+import PageHeader from '../../../components/PageHeader';
 import api from '../../../services/api';
 
-import GlobalStyle from '../../../global/styles';
 import { App, Container, Content } from './styles';
 
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { useKidContext } from "../../../context/kidContext";
 
 function KidAcess() {
@@ -33,36 +34,38 @@ function KidAcess() {
 
     return (
         <App>
-            <nav className="navbar navbar-light bg-light">
-                <h4 className="navbar float-center">HOME</h4>
-            </nav>
+            <PageHeader>
+                <Link className="navbar-brand" to="/">Início</Link>
+            </PageHeader>
         
             <Container>
                 <Content>
-                    <form onSubmit={handleSubmit}>
+                    <form className="legacy-form" onSubmit={handleSubmit}>
                         <h1>Vamos começar?</h1>
+                        <p>Campos com * são obrigatórios.</p>
 
-                        <div className="form-group">
-                            <label htmlFor="user">Usuário</label>
-                            <input type="text" 
-                                id="user" 
-                                name="user" 
-                                className="form-control" 
-                                placeholder="usuário" 
+                        <FormField label="Usuário">
+                            <input type="text"
+                                id="user"
+                                name="user"
+                                autoComplete="username"
+                                required
+                                className="form-control"
+                                placeholder="usuário"
                                 onChange={(e) => setUser(e.target.value)}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="form-group">
-                            <label htmlFor="code">Senha</label>
+                        <FormField label="Código de acesso">
                             <input type="password" inputMode="numeric"
-                                id="code" 
-                                name="code" 
-                                className="form-control" 
-                                placeholder="senha" 
+                                id="code"
+                                name="code"
+                                required
+                                className="form-control"
+                                placeholder="código de acesso"
                                 onChange={(e) => setCode(e.target.value)}
-                            /> 
-                        </div>
+                            />
+                        </FormField>
                         
                         {error && <p role="alert">{error}</p>}
                         <button
@@ -74,7 +77,6 @@ function KidAcess() {
                         </button>
                     </form>
                 </Content>
-                <GlobalStyle />
             </Container>
         </App>
     )

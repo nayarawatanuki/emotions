@@ -1,10 +1,11 @@
+import FormField from '../../../components/FormField';
 import React, { useState } from "react";
+import PageHeader from '../../../components/PageHeader';
 import api from '../../../services/api';
 
-import GlobalStyle from '../../../global/styles';
 import { App, Container, Content } from './styles';
 
-import { useHistory } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 
 function PsycLogin() {
 
@@ -29,40 +30,39 @@ function PsycLogin() {
 
     return (
         <App>
-            <nav className="navbar navbar-light bg-light">
-                <h4 className="navbar float-center">HOME</h4>
-            </nav>
+            <PageHeader>
+                <Link className="navbar-brand" to="/">Início</Link>
+            </PageHeader>
         
             <Container>
                 <Content>
-                    <form onSubmit={handleSubmit}>
+                    <form className="legacy-form" onSubmit={handleSubmit}>
                         <h1>Vamos começar?</h1>
+                        <p>Campos com * são obrigatórios.</p>
 
-                        <div className="form-group">
-                            <label htmlFor="user">Usuário</label>
-                            <input type="text" 
-                                id="user" 
+                        <FormField label="Usuário">
+                            <input type="text"
+                                id="user"
                                 name="user"
                                 autoComplete="username"
                                 required
-                                className="form-control" 
-                                placeholder="usuário" 
+                                className="form-control"
+                                placeholder="usuário"
                                 onChange={(e) => setUser(e.target.value)}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="form-group">
-                            <label htmlFor="code">Senha</label>
-                            <input type="password" 
-                                id="code" 
+                        <FormField label="Senha">
+                            <input type="password"
+                                id="code"
                                 name="password"
                                 autoComplete="current-password"
                                 required
-                                className="form-control" 
-                                placeholder="senha" 
+                                className="form-control"
+                                placeholder="senha"
                                 onChange={(e) => setPassword(e.target.value)}
-                            /> 
-                        </div>
+                            />
+                        </FormField>
                         
                         {error && <p role="alert">{error}</p>}
                         <button
@@ -74,7 +74,6 @@ function PsycLogin() {
                         </button>
                     </form>
                 </Content>
-                <GlobalStyle />
             </Container>
         </App>                
     )

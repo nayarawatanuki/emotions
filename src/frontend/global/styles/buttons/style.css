@@ -1,47 +1,166 @@
-.button {
-    background-color: #4CAF50;
-    border:0.16em solid rgba(255,255,255,0);
-    border-radius:2em;
-    box-sizing: border-box;
-    color:#FFFFFF;
-    padding:0.6em 1.2em;
+#legacy-content .button,
+#legacy-content .btn,
+#legacy-content .legacy-disclosure,
+.swal-modal .swal-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+    max-inline-size: 100%;
+    padding: 0.55rem 0.9rem;
+    border: 2px solid #237484;
+    border-radius: 0.65rem;
+    background: #edf7f8;
+    color: #153f48;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.3;
     text-align: center;
-    display: auto;
-    font-size: 16px;
-    font-weight:300;
-    margin:0 0.4em 0.1em 0;
-    cursor: pointer;  
-    text-shadow: 0 0.04em 0.04em rgba(0,0,0,0.35);
-    transition: all 0.2s;
-    margin-top: 3.5%;
-  }
-  
-  .button-success {
-    background-color: white; 
-    color: black; 
-    border: 2px solid #4CAF50;
-  }
-  
-  .button-info {
-    background-color: white; 
-    color: black; 
-    border: 2px solid #008CBA;
-  }
-  
-  .button-danger {
-    background-color: white; 
-    color: black; 
-    border: 2px solid #f44336;
-  }
-  
-  .button-inative {
-    background-color: white;
-    color: black;
-    border: 2px solid #e7e7e7;
-  }
-  
-  .button1 {
-    background-color: white;
-    color: black;
-    border: 2px solid #555555;
-  }  
+    text-decoration: none;
+    text-wrap: balance;
+    white-space: normal;
+    overflow-wrap: normal;
+    cursor: pointer;
+}
+
+#legacy-content .btn-block { display: flex; }
+
+#legacy-content .button-success,
+#legacy-content .button-save,
+#legacy-content .btn-success {
+    border-color: #38774f;
+    background: #eaf6ed;
+    color: #234e33;
+}
+
+#legacy-content .button-danger,
+#legacy-content .btn-danger,
+.swal-modal .swal-button--danger {
+    border-color: #a33d52;
+    background: #fff0f3;
+    color: #792d3c;
+}
+
+#legacy-content .btn-warning {
+    border-color: #8a6329;
+    background: #fff4db;
+    color: #654414;
+}
+
+#legacy-content :is(.button, .btn, .legacy-disclosure):hover,
+.swal-modal .swal-button:hover {
+    box-shadow: inset 0 0 0 1px currentColor;
+}
+
+#legacy-content :is(.button, .btn, .legacy-disclosure):focus-visible,
+.swal-modal .swal-button:focus-visible {
+    outline: 3px solid #003841;
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
+#legacy-content :is(.button, .btn):disabled,
+#legacy-content :is(.button, .btn)[aria-disabled='true'] {
+    opacity: 0.78;
+    cursor: not-allowed;
+}
+
+.legacy-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-block-start: 1rem;
+}
+
+#legacy-content td .btn { margin: 0.2rem; }
+
+.swal-overlay .swal-modal {
+    width: min(30rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.swal-modal .swal-footer {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0;
+}
+
+.swal-modal .swal-button-container { margin: 0; }
+
+@media (forced-colors: active) {
+    #legacy-content :is(.button, .btn, .legacy-disclosure):focus-visible,
+    .swal-modal .swal-button:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+.legacy-detail-list {
+    text-align: start;
+    margin: 0.5rem 0;
+    padding-inline-start: 1.25rem;
+}
+
+#legacy-content .legacy-disclosure::before {
+    content: '+';
+}
+
+#legacy-content details[open] > .legacy-disclosure::before {
+    content: '−';
+}
+
+#legacy-content .form-control {
+    min-block-size: 44px;
+    border-color: #647d83;
+}
+
+#legacy-content .form-control::placeholder { color: #52676d; }
+
+#legacy-content .legacy-dialog .legacy-actions { justify-content: flex-end; }
+
+.legacy-operation-status {
+    width: fit-content;
+    max-width: calc(100% - 2rem);
+    margin: 0 auto 1rem;
+    padding: 0.75rem;
+    border-radius: 0.65rem;
+    background: #fff;
+    color: #203237;
+}
+
+@media (width < 480px) {
+    #legacy-content .legacy-actions,
+    #legacy-content .legacy-dialog .legacy-actions,
+    .swal-modal .swal-footer {
+        justify-content: center;
+    }
+}
+
+.legacy-field-error:not(:empty) {
+    margin-block-start: 0.35rem;
+    color: #792d3c;
+}
+
+.legacy-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#legacy-content .legacy-row-actions .btn {
+    margin: 0;
+}
+
+#legacy-content .btn.legacy-primary-action {
+    background: #176175;
+    border-color: #176175;
+    color: #fff;
+}

@@ -1,0 +1,101 @@
+.activity-report-preview {
+  width: min(48rem, calc(100% - 2rem));
+  text-align: left;
+}
+
+.activity-report {
+  color: #203237;
+  overflow-wrap: break-word;
+}
+
+.activity-report-heading {
+  padding-block-end: 0.75rem;
+  border-bottom: 2px solid #237484;
+}
+
+.activity-report-heading p,
+.activity-report section p {
+  margin: 0.35rem 0 0;
+}
+
+.activity-report section {
+  margin-block-start: 1.25rem;
+}
+
+.activity-report h2,
+.activity-report h3 {
+  margin: 0.35rem 0;
+  text-wrap: pretty;
+}
+
+.activity-report img {
+  display: block;
+  max-width: 100%;
+  max-height: 13rem;
+  object-fit: contain;
+  margin-block: 0.6rem;
+  break-inside: avoid;
+}
+
+.activity-report-exercise img {
+  margin-inline: auto;
+}
+
+.activity-report table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.activity-report th,
+.activity-report td {
+  padding: 0.4rem 0.3rem;
+  border-bottom: 1px solid #a6c4c9;
+}
+
+.activity-report-note {
+  white-space: pre-wrap;
+}
+
+.activity-report-print {
+  display: none;
+}
+
+@media print {
+  @page activity-report {
+    size: A4;
+    margin: 18mm;
+  }
+
+  body:has(> .activity-report-print) {
+    min-height: 0;
+    background: #fff;
+  }
+
+  body:has(> .activity-report-print) > #root {
+    display: none;
+  }
+
+  body:has(> .activity-report-print) > .activity-report-print {
+    display: block;
+    page: activity-report;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  .activity-report-print .activity-report {
+    color: #000;
+  }
+
+  .activity-report-print :is(h2, h3) {
+    break-after: avoid;
+  }
+
+  .activity-report-print tr {
+    break-inside: avoid;
+  }
+
+  .activity-report-print img {
+    max-height: 42mm;
+  }
+}
