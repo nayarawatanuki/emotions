@@ -11,28 +11,24 @@ const Kid = require('../models/Kid');
 //FUNCTIONS
 routes.get('/kids/:kid_id/listTasks', TaskController.list);
 
-routes.post('/kids/:kid_id/createdTask', multer(multerConfig).single("image"), (req, res) => {
+routes.post('/kids/:kid_id/createdTask', multer(multerConfig).single("image"), async (req, res) => {
 
-    const { location: image = " "} = req.file;
-    const { name, emotion, response1, response2, response3, status, kid_id, image_description } = req.body;
+    const { key, location } = req.file || {};
+    const image = location || (key && `/taskImage/${encodeURIComponent(key)}`);
+    if (!image) return res.status(400).json({ error: 'Image required' });
+    const { name, emotion, response1, response2, response3, status, image_description } = req.body;
+    const { kid_id } = req.params;
     
-    const kid = Kid.findByPk(kid_id);
-        if(!kid) {
-            return res.status(400).json({ error: 'Kid not found'});
-        }
-
-    const task = Task.create(
-        { kid_id, name, emotion, response1, response2, response3, image, status, image_description: image_description?.trim() || null }
-    ).then((response) => {
-        console.log('id', response.id);
-        return res.json(response);
-    }).catch((error) => {
-        console.error(error.message);
-            return res.status(400).json({
-            err: true,
-            message: "erro"
-        }) 
-    });
+    try {
+        if (!await Kid.findByPk(kid_id)) return res.status(404).json({ error: 'Kid not found' });
+        const task = await Task.create({
+            kid_id, name, emotion, response1, response2, response3, image, status,
+            image_description: image_description?.trim() || null,
+        });
+        return res.json(task);
+    } catch {
+        return res.status(400).json({ error: 'Could not save activity' });
+    }
 })
 
 routes.put('/updatedTask/:id', TaskController.update);
