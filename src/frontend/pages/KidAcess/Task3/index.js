@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import swal from 'sweetalert';
+import PageHeader from '../../../components/PageHeader';
 import { useHistory } from 'react-router-dom';
 
-import api, { legacyMediaUrl } from '../../../services/api';
-import GlobalStyle from '../../../global/styles';
-import { Container, Content, Answer, Answers, ActivityImage } from './styles';
+import api from '../../../services/api';
+import ConfirmationDialog from '../../../components/ConfirmationDialog';
+import ActivityReward from '../../../components/ActivityReward';
+import EmotionActivity from '../../../components/EmotionActivity';
+import { Container, Content } from './styles';
 import { useKidContext } from '../../../context/kidContext';
 import { useTaskContext } from '../../../context/taskContext';
 
@@ -21,6 +23,8 @@ function Task3() {
   const [feedback, setFeedback] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [completion, setCompletion] = useState(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -52,18 +56,12 @@ function Task3() {
       return;
     }
 
-    if (showReward) {
-      const rewards = await api.get(`/tasks/${task_id}/listRewards`)
-        .then(({ data }) => data)
-        .catch(() => []);
-      for (const reward of rewards) {
-        await swal({ title: reward.message, icon: legacyMediaUrl(reward.photo), button: 'Continuar' });
-      }
-      if (!rewards.length) await swal('Resposta correta! Resultado salvo.');
-    } else {
-      await swal('Resultado salvo.');
-    }
-    history.push('/Tasks');
+    const rewards = showReward
+      ? await api.get(`/tasks/${task_id}/listRewards`)
+        .then(({ data }) => Array.isArray(data) ? data : [])
+        .catch(() => [])
+      : [];
+    setCompletion({ rewards, showReward });
   }
 
   function chooseAnswer(answer) {
@@ -78,65 +76,72 @@ function Task3() {
     }
   }
 
-  async function finish() {
-    const confirmed = await swal({
-      title: 'Finalizar atividade?',
-      text: 'Depois de finalizar, você não poderá refazer esta atividade.',
-      buttons: ['Continuar atividade', 'Finalizar']
-    });
+  function confirmCompletion(confirmed) {
+    setConfirming(false);
     if (confirmed) saveActivityResult(response, attempts, false);
+  }
+
+  function returnToList() {
+    history.replace('/Tasks', { fromCompletion: true });
   }
 
   return (
     <>
-      <header className="navbar navbar-light bg-light">
+      <PageHeader>
         <button type="button" className="button button-danger" disabled={busy}
           onClick={() => history.push('/Tasks')}>Sair da atividade</button>
-      </header>
+      </PageHeader>
       <Container>
         <Content>
-          <h1>Associe a emoção à imagem</h1>
+          {!task && <h1>Associe a emoção à imagem</h1>}
           {loadError && <p role="alert">Não foi possível carregar a atividade.</p>}
           {!task && !loadError && <p role="status">Carregando atividade…</p>}
           {task && (
             <>
-              <p>Arraste ou clique na emoção que combina com a imagem. Se usar o teclado, vá até a opção com Tab e pressione Enter.</p>
-              <ActivityImage src={legacyMediaUrl(task.image)}
-                alt={task.image_description || 'Imagem da atividade sem descrição disponível.'}
-                onDragOver={(event) => {
+              <EmotionActivity activity={task} getAnswerProps={(answer) => ({
+                type: 'button',
+                'aria-disabled': busy,
+                onClick: () => chooseAnswer(answer),
+                draggable: !busy,
+                onDragStart(event) {
+                  draggedAnswer.current = answer;
+                  event.dataTransfer.setData('text/plain', answer);
+                },
+                onDragEnd() { draggedAnswer.current = null; },
+              })} imageEvents={{
+                onDragOver(event) {
                   if (draggedAnswer.current) event.preventDefault();
-                }}
-                onDrop={(event) => {
+                },
+                onDrop(event) {
                   event.preventDefault();
                   const answer = draggedAnswer.current;
                   draggedAnswer.current = null;
                   chooseAnswer(answer);
-                }}
-              />
-              <Answers>
-                <legend>Qual emoção a imagem representa?</legend>
-                {[task.response1, task.response2, task.response3].map((answer, index) => (
-                  <Answer key={index} type="button" aria-disabled={busy}
-                    onClick={() => chooseAnswer(answer)}
-                    draggable={!busy}
-                    onDragStart={(event) => {
-                      draggedAnswer.current = answer;
-                      event.dataTransfer.setData('text/plain', answer);
-                    }}
-                    onDragEnd={() => { draggedAnswer.current = null; }}
-                  >{answer}</Answer>
-                ))}
-              </Answers>
+                },
+              }} />
               <p role="status">{feedback}</p>
               {response && response !== task.emotion && (
                 <button type="button" className="button button-save" disabled={busy}
-                  onClick={finish}>Concluir atividade</button>
+                  onClick={() => setConfirming(true)}>Concluir atividade</button>
               )}
             </>
           )}
         </Content>
       </Container>
-      <GlobalStyle />
+      {confirming && (
+        <ConfirmationDialog title="Finalizar atividade?"
+          message="Depois de finalizar, você não poderá refazer esta atividade."
+          confirmLabel="Finalizar" onClose={confirmCompletion} />
+      )}
+      {completion && (
+        <ActivityReward
+          title={completion.showReward ? 'Parabéns! Resposta correta.' : 'Resultado salvo.'}
+          rewards={completion.rewards}
+          celebrate={completion.showReward}
+          buttonLabel="Continuar"
+          onClose={returnToList}
+        />
+      )}
     </>
   );
 }

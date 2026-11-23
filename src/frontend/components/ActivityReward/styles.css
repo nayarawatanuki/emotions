@@ -1,0 +1,184 @@
+.activity-reward img {
+  display: block;
+  max-width: 100%;
+  max-height: 40vh;
+  margin: 1rem auto;
+  object-fit: contain;
+}
+
+.activity-confetti {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.activity-reward-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.activity-reward-button {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0.625rem 1.5rem;
+  border: 0;
+  border-radius: 5px;
+  background: #7cd1f9;
+  color: #153447;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.activity-reward-button:hover {
+  background: #65c7f6;
+}
+
+.activity-reward-button:focus-visible {
+  outline: 2px solid #153447;
+  outline-offset: 3px;
+}
+
+.activity-confetti span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: activity-confetti-burst 1.1s ease-out both;
+}
+
+.activity-confetti span + span {
+  top: 65%;
+  left: 60%;
+  animation-delay: 180ms;
+}
+
+@keyframes activity-confetti-burst {
+  from {
+    opacity: 1;
+    box-shadow:
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent,
+      0 0 transparent;
+  }
+  70%, to {
+    box-shadow:
+      -232px -244px #a6ff00,
+      -15px -80px #59ff00,
+      131px -139px #00ffb7,
+      33px -38px #eaff00,
+      -47px -137px #6f00ff,
+      -138px -318px #00ccff,
+      208px -87px #002fff,
+      -164px -37px #9900ff,
+      147px -401px #00ff1e,
+      136px -395px #00fbff,
+      83px -84px #ff3300,
+      137px -98px #00ffa2,
+      48px 80px #8cff00,
+      -22px -340px #ff0400,
+      226px -302px #00ffdd,
+      -167px -20px #ff00d9,
+      1px -359px #aeff00,
+      123px -192px #b300ff,
+      -139px -143px deepskyblue,
+      -190px -213px #2bff00,
+      9px -2px #ff7700,
+      108px -278px #00ffd5,
+      25px -54px #ff00bb,
+      -203px -369px #00ffc4,
+      -223px -398px #62ff00,
+      61px -371px #00fff7,
+      -157px -279px #ff000d,
+      -210px -360px #ff00fb,
+      189px -0px #ff00d0,
+      -109px -237px #26ff00,
+      170px -254px #ff0011,
+      -208px -232px #ff1e00,
+      -227px -325px #ff1500,
+      -152px -228px #ff0015,
+      -106px -204px #f7ff00,
+      243px -381px #8400ff,
+      249px -116px #fb00ff,
+      -19px 32px #ff0091,
+      180px -387px #bb00ff,
+      -26px -159px #00f7ff,
+      192px 80px #ff004d,
+      156px -2px #ff00c4,
+      -60px -36px #ff3700,
+      164px -220px #ff000d,
+      -35px -148px #ddff00,
+      -223px -307px #1aff00,
+      9px -0px lime,
+      -29px -368px #b700ff,
+      -44px -229px #ff00d9,
+      -216px -17px #ff4000,
+      10px -284px #a200ff;
+  }
+  70% { opacity: 1; }
+  to { opacity: 0; transform: translateY(18px); }
+}
+
+@media (width < 480px) {
+  .activity-reward-footer {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-confetti {
+    display: none;
+  }
+}

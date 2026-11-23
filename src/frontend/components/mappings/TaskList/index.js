@@ -1,50 +1,48 @@
-import React, { useState } from "react";
-import swal from "sweetalert";
-import { Link, useHistory } from "react-router-dom";
-import { useKidContext } from "../../../context/kidContext";
-import { useTaskContext } from "../../../context/taskContext";
+import React from 'react';
+import { DataRow } from '../../DataTable';
+import { useHistory } from 'react-router-dom';
 
-function TaskList({ task }){ 
+import { useTaskContext } from '../../../context/taskContext';
 
-  
-  const {kid_id} = useKidContext();
-  const {saveId} = useTaskContext();
-  const [name, setName] = useState(task.name);
-  const [status, setStatus] = useState(task.status);
+export const taskColumns = [
+  { key: 'name', label: 'Atividade' },
+  { key: 'status', label: 'Status' },
+  { key: 'action', label: 'Ação' },
+];
 
+function TaskList({ columns, task, canReviewReward, loadingReward, onReviewReward }) {
+  const { saveId } = useTaskContext();
   const history = useHistory();
-  
-  //const [id, setId] = useState(task.id)
+  const completed = task.status === 'realizada';
 
-  const openTask = async () => {
-    history.push({ pathname: "/Task3", search: `${task.id}`});
+  function openTask() {
+    saveId(String(task.id));
+    history.push({ pathname: '/Task3', search: String(task.id) });
   }
-  return(
-    <tr id="rows" >
-      <td className="fit-content" hidden={true}>{task.id}</td>
-      <td className="fit-content" hidden={true}> {kid_id}</td>
-      <td className="fit-content"> {name}</td>
-      <td className="fit-content"> {status}</td>
 
-      <td>
-        <button
-          id="list"
-          className="btn btn-sm btn-info d-inline-block mr-1"
-          onClick={(e) => {
-            saveId(`${task.id}`)
-            if(`${task.status}` === 'realizada') {
-              e.preventDefault();
-              swal({title: 'Tarefa já realizada!', icon: "warning"})
-            } else {
-              openTask();
-            }}
-          }
-        >
-          <i className="fas fa-play"></i>
-        </button>
-      </td>
-    </tr>   
-  )
+  return <DataRow columns={columns} cells={{
+    name: (<>
+      <span className="legacy-cell-value">{task.name}</span>
+    </>),
+    status: (<>
+      {completed ? 'Realizada' : task.status}
+    </>),
+    action: (<>
+      {completed && canReviewReward && (
+          <button type="button" className="btn btn-sm btn-info d-inline-block mr-1"
+            aria-label={`Ver recompensa: ${task.name}`} aria-disabled={loadingReward}
+            onClick={(event) => onReviewReward(task, event.currentTarget)}>
+            Ver recompensa
+          </button>
+        )}
+        {!completed && (
+          <button type="button" className="btn btn-sm btn-info d-inline-block mr-1"
+            aria-label={`Começar atividade: ${task.name}`} onClick={openTask}>
+            Começar atividade
+          </button>
+        )}
+    </>),
+  }} />;
 }
 
 export default TaskList;

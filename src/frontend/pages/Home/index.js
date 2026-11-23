@@ -1,18 +1,14 @@
 import React from "react";
+import PageHeader from '../../components/PageHeader';
 
-import GlobalStyle from '../../global/styles';
-import spectrumRibbon from './spectrum-ribbon.png';
-import { Container, Content, NavBrand, SpectrumRibbon, EmotionPieces, AccessLink } from './styles';
+import { Container, Content, EmotionPieces, AccessLink } from './styles';
 
 function Home() {
     return (
         <div>
-            <header className="navbar navbar-light bg-light">
-                <NavBrand>
-                    <SpectrumRibbon src={spectrumRibbon} alt="" />
-                    <span className="navbar" style={{ fontSize: "1.5rem" }}>ACESSOS</span>
-                </NavBrand>
-            </header>
+            <PageHeader>
+                <span className="navbar-brand">ACESSOS</span>
+            </PageHeader>
         
             <Container>
                 <Content>
@@ -25,7 +21,6 @@ function Home() {
                     <AccessLink to="/KidAcess">Acesso Criança</AccessLink>
                     <AccessLink to="/PsycAcess">Acesso Psicólogo(a)</AccessLink>
                 </Content>
-                <GlobalStyle />
             </Container>
         </div>
     )

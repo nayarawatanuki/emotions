@@ -1,10 +1,11 @@
+import FormField from '../../../components/FormField';
 import React, { useState } from 'react';
+import PageHeader from '../../../components/PageHeader';
 
-import GlobalStyle from '../../../global/styles';
 import { App, Container, Content } from './styles.js';
 
 import api from '../../../services/api';
-import {useHistory } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom';
 
 function addAdmin() {
     const history = useHistory();
@@ -13,87 +14,74 @@ function addAdmin() {
     const [user,setUser] = useState("");
     const [password,setPassword] = useState("");
 
-    async function create(){    
-        if(!name || !user || !password){
-            window.alert('Prencha todos os campos')
+    const [error, setError] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+        setError('');
+        setSaving(true);
+        try {
+            await api.post('/adminCreated', { name, user, password });
+            history.push('/Admin');
+        } catch {
+            setError('Não foi possível cadastrar o profissional. Confira os dados e tente novamente.');
+        } finally {
+            setSaving(false);
         }
-
-        await api.post(
-            '/adminCreated',
-            { name: name, user: user, password: password },
-            
-            window.alert('Cadastrado')
-            )
-            .then(response => 
-            console.log(JSON.stringify({
-                'name': name, 
-                'user': user, 
-                'password': password
-            })),
-            console.log("Enviado!")
-        );
-    }
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        await create(); 
-    
-        history.push('/Admin')
     }
 
     return (
         <App>
-            <nav className="navbar navbar-light bg-light">
-                <h4 className="navbar float-center">HOME</h4>
-            </nav>
+            <PageHeader>
+                <Link className="navbar-brand" to="/">Início</Link>
+            </PageHeader>
             <Container>
                 <Content>
-                    <form> 
-                        <h1>Cadastre um Admin</h1>
+                    <form className="legacy-form" onSubmit={handleSubmit}>
+                        <h1>Cadastrar profissional</h1>
+                        <p>Campos com * são obrigatórios.</p>
 
-                        <div className="form-group">
-                            <label htmlFor="name">Name</label>
-                            <input type="text" 
-                                id="name" 
-                                name="name" 
-                                className="form-control" 
-                                placeholder="name" 
+                        <FormField label="Nome">
+                            <input type="text"
+                                id="name"
+                                name="name"
+                                className="form-control"
+                                autoComplete="name" required
                                 onChange={(e) => setName(e.target.value)}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="form-group">
-                            <label htmlFor="user">User</label>
-                            <input type="text" 
-                                id="user" 
-                                name="user" 
-                                className="form-control" 
-                                placeholder="usuario" 
+                        <FormField label="Usuário">
+                            <input type="text"
+                                id="user"
+                                name="user"
+                                className="form-control"
+                                autoComplete="username" required
                                 onChange={(e) => setUser(e.target.value)}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="form-group">
-                            <label htmlFor="code">Senha</label>
-                            <input type="text" 
-                                id="code" 
-                                name="code" 
-                                className="form-control" 
-                                placeholder="senha" 
+                        <FormField label="Senha (mínimo de 15 caracteres)">
+                            <input type="password"
+                                id="new-password"
+                                name="password"
+                                className="form-control"
+                                autoComplete="new-password" minLength={15} required
                                 onChange={(e) => setPassword(e.target.value)}
-                            /> 
-                        </div>
+                            />
+                        </FormField>
                         
+                        {error && <p role="alert">{error}</p>}
                         <button
                             id="list"
                             className="button button-info btn-lg btn-block float-center"
-                            onClick={handleSubmit}
+                            type="submit" disabled={saving}
                         >
-                            Entrar
+                            {saving ? 'Salvando…' : 'Cadastrar'}
                         </button>
                     </form>
                 </Content>
-                <GlobalStyle />
             </Container>
         </App>                
     )

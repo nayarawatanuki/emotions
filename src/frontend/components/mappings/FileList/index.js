@@ -1,44 +1,36 @@
-import React from 'react';
-import { MdCheckCircle, MdError, MdLink } from 'react-icons/md';
+import React, { useEffect, useState } from 'react';
+import filesize from 'filesize';
 
-import { Container, FileInfo, Preview } from "./styles";
+import { Container, FileInfo, Preview } from './styles';
 
-const FileList = ({ file, onDelete }) => (
-  <Container>
-    {file.map(uploadedFile => (
-      <li key={uploadedFile.id}>
+function FileList({ file, onDelete }) {
+  const [preview, setPreview] = useState(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  return (
+    <Container>
+      <li>
         <FileInfo>
-          <Preview src={uploadedFile.preview} />
+          {preview && <Preview src={preview} alt="" />}
           <div>
-            <strong>{uploadedFile.name}</strong>
+            <strong>{file.name}</strong>
             <span>
-              {uploadedFile.readableSize}{" "}
-              <button onClick={() => onDelete(uploadedFile.id)}>
-                Excluir
+              {filesize(file.size)}
+              <button type="button" className="button button-danger"
+                aria-label={`Remover arquivo: ${file.name}`} onClick={onDelete}>
+                Remover
               </button>
             </span>
           </div>
         </FileInfo>
-        <div>
-          {!uploadedFile.uploaded && !uploadedFile.error && (
-            <MdCheckCircle size={24} color="#78e5d5" />
-          )}
-          
-          {uploadedFile.error && <MdError size={24} color="#e57878" />}
-
-          {uploadedFile.url && (
-            <a
-              href={uploadedFile.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MdLink style={{ marginRight: 8 }} size={24} color="#222" />
-            </a>
-          )}
-        </div>
       </li>
-    ))}
-  </Container>
-);
+    </Container>
+  );
+}
 
 export default FileList;
