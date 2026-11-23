@@ -1,3 +1,4 @@
+import { AllowChildActivationTokens1793520004000 } from './migrations/1793520004000-allow-child-activation-tokens.js';
 import { AddStoredImageBytes1793520003000 } from './migrations/1793520003000-add-stored-image-bytes.js';
 import { AddAuthenticationPersistence1793520002000 } from './migrations/1793520002000-add-authentication-persistence.js';
 import type { DataSourceOptions } from 'typeorm';
@@ -11,6 +12,7 @@ export const databaseMigrations = [
   UnifyActivityResults1793520001000,
   AddAuthenticationPersistence1793520002000,
   AddStoredImageBytes1793520003000,
+  AllowChildActivationTokens1793520004000,
 ];
 export const migrationsTableName = 'schema_migrations';
 

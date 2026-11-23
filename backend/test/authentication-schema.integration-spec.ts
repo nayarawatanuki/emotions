@@ -157,7 +157,7 @@ describe('authentication constraints on real MySQL after approved migration', ()
     });
   });
 
-  it('rejects a token for a child account', async () => {
+  it('rejects a token whose declared role does not match the child account', async () => {
     const value = await token();
     await expect(
       runner.manager
@@ -169,6 +169,45 @@ describe('authentication constraints on real MySQL after approved migration', ()
       },
     });
   });
+
+  it('accepts a child activation token issued by a professional', async () => {
+    const tokens = runner.manager.getRepository(AccountTokenEntity);
+    const value = await token();
+    await tokens.insert({
+      ...value,
+      accountId: await account('child'),
+      accountRole: 'child',
+      issuedByAccountId: value.accountId,
+      issuedByRole: 'professional',
+    });
+    expect(await tokens.findOneByOrFail({ id: value.id })).toMatchObject({
+      accountRole: 'child',
+      issuedByRole: 'professional',
+      purpose: 'activation',
+    });
+  });
+
+  it.each([
+    ['administrator', 'activation'],
+    ['child', 'activation'],
+    ['professional', 'password_reset'],
+  ] as const)(
+    'rejects child tokens issued by %s for %s',
+    async (role, purpose) => {
+      await expect(
+        runner.manager.getRepository(AccountTokenEntity).insert({
+          ...(await token()),
+          accountId: await account('child'),
+          accountRole: 'child',
+          issuedByAccountId: await account(role),
+          issuedByRole: role,
+          purpose,
+        }),
+      ).rejects.toMatchObject({
+        driverError: { code: 'ER_CHECK_CONSTRAINT_VIOLATED' },
+      });
+    },
+  );
 
   it.each([
     { consumedAt, revokedAt: consumedAt },

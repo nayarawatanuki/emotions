@@ -65,6 +65,7 @@ describe('migration configuration', () => {
         'UnifyActivityResults1793520001000',
         'AddAuthenticationPersistence1793520002000',
         'AddStoredImageBytes1793520003000',
+        'AllowChildActivationTokens1793520004000',
       ],
     );
   });

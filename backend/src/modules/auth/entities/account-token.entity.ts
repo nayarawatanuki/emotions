@@ -102,7 +102,7 @@ export const AccountTokenEntity = new EntitySchema<AccountToken>({
     {
       name: 'ck_account_tokens_roles',
       expression:
-        "account_role = 'professional' AND issued_by_role = 'administrator'",
+        "(account_role = 'professional' AND issued_by_role = 'administrator') OR (account_role = 'child' AND issued_by_role = 'professional' AND purpose = 'activation')",
     },
     {
       name: 'ck_account_tokens_digest_length',

@@ -186,7 +186,7 @@ describe('domain persistence metadata', () => {
     );
   });
 
-  it('binds professional access tokens to an administrator issuer', () => {
+  it('binds access tokens to permitted roles and restricts child tokens to activation', () => {
     const tokens = entity('account_tokens');
     expect(
       tokens.foreignKeys.map((key) => key.referencedEntityMetadata.tableName),
@@ -198,7 +198,7 @@ describe('domain persistence metadata', () => {
       tokens.checks.find((check) => check.name === 'ck_account_tokens_roles')
         ?.expression,
     ).toBe(
-      "account_role = 'professional' AND issued_by_role = 'administrator'",
+      "(account_role = 'professional' AND issued_by_role = 'administrator') OR (account_role = 'child' AND issued_by_role = 'professional' AND purpose = 'activation')",
     );
   });
 });
