@@ -1,3 +1,5 @@
+import { InvitationCard } from '../../components/InvitationCard/InvitationCard'
+import type { ActivationInvitation } from '../../features/auth/invitation'
 import { useEffect, useRef, useState } from 'react'
 import type { AdultSession } from '../../features/auth/auth-api'
 import { ApiError, requestError } from '../../services/api'
@@ -7,6 +9,7 @@ import {
   updateChild,
   uploadChildPhoto,
   loadChild,
+  issueChildInvitation,
   type ChildView,
   type CreateChildInput
 } from '../../features/children/children-api'
@@ -39,6 +42,7 @@ export function ProfessionalCare({
   const [editing, setEditing] = useState<ChildView | null>(null)
   const [detail, setDetail] = useState<ChildView | null>(null)
   const [revision, setRevision] = useState(0)
+  const [invitation, setInvitation] = useState<{ childId: string; activation: ActivationInvitation } | null>(null)
   const [error, setError] = useState('')
   const [reading, setReading] = useState(false)
   const focusDetail = useRef(false)
@@ -93,6 +97,7 @@ export function ProfessionalCare({
   }
   async function archive() {
     if (!archiveRequest) return
+    setInvitation(null)
     const child = await perform(() =>
       setChildArchived(
         archiveRequest.child,
@@ -124,7 +129,22 @@ export function ProfessionalCare({
     setDetail(await perform(() => loadChild(child.id)))
     onSessionRefresh()
   }
+  async function invite(child: ChildView) {
+    setError('')
+    setInvitation(null)
+    try {
+      const activation = await perform(() => issueChildInvitation(child.id, session.csrfToken, window.location.origin))
+      setInvitation({ childId: child.id, activation })
+      onSessionRefresh()
+    } catch (failure) {
+      setError(failure instanceof ApiError && failure.status === 409
+        ? 'Só é possível gerar convite para uma conta infantil pendente e com cadastro ativo.'
+        : requestError(failure))
+      requestAnimationFrame(() => feedback.current?.focus())
+    }
+  }
   async function select(id: string) {
+    setInvitation(null)
     setDetail(null)
     setError('')
     setReading(true)
@@ -165,6 +185,7 @@ export function ProfessionalCare({
           disabled={disabled || archiveRequest !== null}
           onArchive={(opener) => setArchiveRequest({ child: detail, opener })}
           onEdit={() => {
+            setInvitation(null)
             setEditing(detail)
             requestAnimationFrame(() =>
               document.getElementById('child-form-title')?.focus()
@@ -172,12 +193,25 @@ export function ProfessionalCare({
           }}
           visible={visible}
           onClose={() => {
+            setInvitation(null)
             setDetail(null)
             requestAnimationFrame(() =>
               document.getElementById('children-directory-title')?.focus()
             )
           }}
         >
+          {!detail.archived && (
+            invitation?.childId === detail.id ? (
+              <InvitationCard key={invitation.activation.url} activation={invitation.activation}
+                child recipient={detail} visible={visible} onDismiss={() => {
+                  setInvitation(null)
+                  requestAnimationFrame(() => document.getElementById('child-details-title')?.focus())
+                }} />
+            ) : (
+              <button className="secondary-button" disabled={disabled || archiveRequest !== null}
+                onClick={() => { void invite(detail) }}>Gerar convite de acesso</button>
+            )
+          )}
           {!detail.archived && (
             <ChildPhoto
               child={detail}

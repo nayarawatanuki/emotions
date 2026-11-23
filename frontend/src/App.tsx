@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router'
 import { Home } from './pages/Home/Home'
 import { Login } from './pages/Login/Login'
 import { ActivateAccount } from './pages/ActivateAccount/ActivateAccount'
+import { ChildSpace } from './pages/ChildSpace/ChildSpace'
 import { NotFound } from './pages/NotFound/NotFound'
 
 const Workspace = lazy(() =>
@@ -24,11 +25,11 @@ export default function App({
     document.title =
       pathname === '/'
         ? 'Emotions — cada emoção, uma descoberta'
-        : pathname === '/login'
+        : pathname === '/login' || pathname === '/child/login'
           ? 'Entrar — Emotions'
           : pathname === '/activate-account'
             ? 'Ativar conta — Emotions'
-            : pathname === '/workspace'
+            : (pathname === '/workspace' || pathname === '/child')
               ? 'Meu espaço — Emotions'
               : 'Página não encontrada — Emotions'
 
@@ -43,6 +44,8 @@ export default function App({
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/child/login" element={<Login child />} />
+      <Route path="/child" element={<ChildSpace />} />
       <Route
         path="/activate-account"
         element={

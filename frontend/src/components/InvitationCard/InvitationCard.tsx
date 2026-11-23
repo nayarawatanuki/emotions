@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ProfessionalInvitation } from '../../features/professionals/professionals-api'
+import type { ActivationInvitation } from '../../features/auth/invitation'
 
 export function InvitationCard({
-  invitation,
+  activation,
+  recipient,
+  child = false,
   onDismiss,
   visible
 }: {
   visible: boolean
-  invitation: ProfessionalInvitation
+  activation: ActivationInvitation
+  recipient: { name: string; username: string }
+  child?: boolean
   onDismiss: () => void
 }) {
   const heading = useRef<HTMLHeadingElement>(null)
@@ -24,8 +28,10 @@ export function InvitationCard({
   async function copy() {
     setCopying(true)
     try {
-      await navigator.clipboard.writeText(invitation.activation.url)
-      setMessage('Convite copiado. Entregue somente ao profissional indicado.')
+      await navigator.clipboard.writeText(activation.url)
+      setMessage(child
+        ? 'Convite copiado. Entregue somente ao responsável pela criança.'
+        : 'Convite copiado. Entregue somente ao profissional indicado.')
     } catch {
       field.current?.focus()
       field.current?.select()
@@ -43,18 +49,18 @@ export function InvitationCard({
     >
       <p className="eyebrow">Próximo passo: entregar o acesso</p>
       <h2 id="invitation-title" ref={heading} tabIndex={-1}>
-        Convite de {invitation.professional.name}
+        Convite de {recipient.name}
       </h2>
       <p>
-        Usuário: <strong>{invitation.professional.username}</strong>
+        Usuário: <strong>{recipient.username}</strong>
       </p>
       <p>
         Válido até{' '}
-        <time dateTime={invitation.activation.expiresAt}>
+        <time dateTime={activation.expiresAt}>
           {new Intl.DateTimeFormat('pt-BR', {
             dateStyle: 'short',
             timeStyle: 'short'
-          }).format(new Date(invitation.activation.expiresAt))}
+          }).format(new Date(activation.expiresAt))}
         </time>
         , no horário deste dispositivo.
       </p>
@@ -64,7 +70,7 @@ export function InvitationCard({
           ref={field}
           id="activation-invitation"
           readOnly
-          value={invitation.activation.url}
+          value={activation.url}
           rows={3}
           spellCheck={false}
           aria-describedby="invitation-care"

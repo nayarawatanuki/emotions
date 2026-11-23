@@ -78,7 +78,8 @@ export function Administration({
         <InvitationCard
           visible={visible}
           key={invitation.activation.url}
-          invitation={invitation}
+          activation={invitation.activation}
+          recipient={invitation.professional}
           onDismiss={() => setInvitation(null)}
         />
       )}

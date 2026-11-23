@@ -60,6 +60,7 @@ export function Home() {
                 <span className="card-symbol child-symbol" aria-hidden="true">✦</span>
                 <div>
                   <h3>Para cada criança</h3>
+                  <Link className="text-link" to="/child/login">Entrar como criança</Link>
                   <p>Atividades para explorar imagens, palavras e emoções, com a mediação de um profissional e respeito às necessidades individuais.</p>
                 </div>
               </article>

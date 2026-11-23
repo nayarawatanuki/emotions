@@ -607,6 +607,14 @@ Nenhum registro ou arquivo antigo será migrado automaticamente.
 - Após a limpeza, as 13 tabelas da aplicação ficaram vazias. A linha
   9.7 LTS continua como alvo da versão modernizada.
 
+### Acesso infantil na versão modernizada
+
+- O profissional responsável gera um convite de uso único, válido por 24 horas, na ficha ativa da criança. Um novo convite invalida o anterior.
+- A família define a senha pelo link. A entrada usa `/child/login`, e a sessão infantil tem acesso ao espaço `/child`. As rotas profissionais e administrativas exigem o papel correspondente.
+- Arquivar a ficha revoga convites e sessões. O login e a sessão também verificam se o profissional responsável continua ativo.
+- A quinta migration amplia a restrição de papéis em `account_tokens`. A reversão é recusada se houver convites infantis registrados.
+- A migration foi aplicada no MySQL local de desenvolvimento e verificada pelo comando de status e pela restrição registrada no esquema.
+
 ### Verificações gerais
 
 - TypeScript e lint sem erros; build de produção funcionando.

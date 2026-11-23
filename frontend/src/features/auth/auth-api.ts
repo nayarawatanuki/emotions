@@ -1,13 +1,19 @@
 import { apiRequest, ApiError } from '../../services/api.ts'
 
-export interface AdultSession {
-  user: { id: string; name: string; role: 'administrator' | 'professional' }
+type AdultRole = 'administrator' | 'professional'
+type SessionRole = AdultRole | 'child'
+
+interface Session<Role extends SessionRole> {
+  user: { id: string; name: string; role: Role }
   csrfToken: string
   expiresAt: string
   idleExpiresAt: string
 }
 
-export function parseSession(value: unknown): AdultSession {
+export type AdultSession = Session<AdultRole>
+export type ChildSession = Session<'child'>
+
+function parseRoleSession<Role extends SessionRole>(value: unknown, roles: readonly Role[]): Session<Role> {
   if (
     !value ||
     typeof value !== 'object' ||
@@ -19,7 +25,8 @@ export function parseSession(value: unknown): AdultSession {
     !('name' in value.user) ||
     typeof value.user.name !== 'string' ||
     !('role' in value.user) ||
-    !['administrator', 'professional'].includes(String(value.user.role)) ||
+    typeof value.user.role !== 'string' ||
+    !roles.includes(value.user.role as Role) ||
     !('csrfToken' in value) ||
     typeof value.csrfToken !== 'string' ||
     !/^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(value.csrfToken) ||
@@ -32,13 +39,21 @@ export function parseSession(value: unknown): AdultSession {
   ) {
     throw new ApiError(502)
   }
-  return value as AdultSession
+  return value as Session<Role>
 }
 
-export async function login(username: string, password: string): Promise<void> {
-  parseSession(
-    await apiRequest('/auth/login', { body: { username, password } })
-  )
+export function parseSession(value: unknown): AdultSession {
+  return parseRoleSession(value, ['administrator', 'professional'])
+}
+
+export async function login(username: string, password: string, child = false): Promise<void> {
+  const result = await apiRequest(child ? '/auth/child/login' : '/auth/login', { body: { username, password } })
+  if (child) parseRoleSession(result, ['child'])
+  else parseSession(result)
+}
+
+export async function loadChildSession(signal: AbortSignal): Promise<ChildSession> {
+  return parseRoleSession(await apiRequest('/auth/child/session', { signal }), ['child'])
 }
 
 export async function loadSession(signal: AbortSignal): Promise<AdultSession> {

@@ -6,7 +6,7 @@ import { login } from '../../features/auth/auth-api'
 import { passwordError } from '../../features/auth/password-policy'
 import { ApiError, requestError } from '../../services/api'
 
-export function Login() {
+export function Login({ child = false }: { child?: boolean }) {
   const navigate = useNavigate()
   const location = useLocation()
   const pending = useRef(false)
@@ -38,12 +38,14 @@ export function Login() {
     setBusy(true)
     setError('')
     try {
-      await login(username, password)
-      navigate('/workspace', { replace: true })
+      await login(username, password, child)
+      navigate(child ? '/child' : '/workspace', { replace: true })
     } catch (failure) {
       setError(
         failure instanceof ApiError && [400, 401, 403].includes(failure.status)
-          ? 'Não foi possível entrar. Confira usuário e senha. Se ainda não ativou sua conta, use o convite recebido do ADM.'
+          ? child
+            ? 'Confira seu usuário e sua senha. Para o primeiro acesso, use o convite entregue pelo profissional.'
+            : 'Não foi possível entrar. Confira usuário e senha. Se ainda não ativou sua conta, use o convite recebido do ADM.'
           : requestError(failure)
       )
       requestAnimationFrame(() => feedback.current?.focus())
@@ -57,7 +59,7 @@ export function Login() {
 
   return (
     <AccessLayout>
-      <p className="eyebrow">Acesso profissional e administrativo</p>
+      <p className="eyebrow">{child ? 'Acesso da criança' : 'Acesso profissional e administrativo'}</p>
       <h1>Que bom ter você aqui.</h1>
       <p className="access-description">
         Entre para continuar seu percurso no Emotions.
@@ -108,8 +110,9 @@ export function Login() {
       <div className="access-help">
         <h2>É seu primeiro acesso?</h2>
         <p>
-          Abra o link de ativação entregue pelo ADM. Se precisar de outro
-          convite ou de ajuda com sua senha, fale com a administração.
+          {child
+            ? 'Peça ajuda ao seu responsável para abrir o convite entregue pelo profissional.'
+            : 'Abra o link de ativação entregue pelo ADM. Se precisar de outro convite, fale com a administração.'}
         </p>
       </div>
       <Link className="access-home-link" to="/">

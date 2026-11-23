@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import { ApiError } from '../../services/api'
-import { loadSession, type AdultSession } from './auth-api'
+import { loadSession, loadChildSession, type AdultSession, type ChildSession } from './auth-api'
 
-export function useAdultSession(mutating: RefObject<boolean>) {
-  const [session, setSession] = useState<AdultSession | null>(null)
+function useSession<T extends AdultSession | ChildSession>(mutating: RefObject<boolean>, loader: (signal: AbortSignal) => Promise<T>) {
+  const [session, setSession] = useState<T | null>(null)
   const [status, setStatus] = useState<
     'checking' | 'ready' | 'anonymous' | 'error'
   >('checking')
@@ -18,7 +18,7 @@ export function useAdultSession(mutating: RefObject<boolean>) {
   }, [])
   useEffect(() => {
     const controller = new AbortController()
-    loadSession(controller.signal)
+    loader(controller.signal)
       .then((current) => {
         if (!controller.signal.aborted) {
           setSession(current)
@@ -35,7 +35,7 @@ export function useAdultSession(mutating: RefObject<boolean>) {
         )
       })
     return () => controller.abort()
-  }, [attempt])
+  }, [attempt, loader])
   useEffect(() => {
     const focus = () => {
       if (!mutating.current) refresh()
@@ -60,4 +60,12 @@ export function useAdultSession(mutating: RefObject<boolean>) {
     return () => clearTimeout(timer)
   }, [session, end])
   return { session, status, refresh, end }
+}
+
+export function useAdultSession(mutating: RefObject<boolean>) {
+  return useSession(mutating, loadSession)
+}
+
+export function useChildSession(mutating: RefObject<boolean>) {
+  return useSession(mutating, loadChildSession)
 }

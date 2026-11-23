@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { AccessLayout } from '../../components/AccessLayout/AccessLayout'
 import { PasswordField } from '../../components/PasswordField/PasswordField'
 import { activateAccount } from '../../features/auth/auth-api'
@@ -16,6 +16,10 @@ export function ActivateAccount({
   token: string | null
   clearToken: () => void
 }) {
+  const [params] = useSearchParams()
+  const child = params.get('profile') === 'child'
+  const loginPath = child ? '/child/login' : '/login'
+  const issuer = child ? 'profissional responsável' : 'ADM'
   const [complete, setComplete] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -69,7 +73,7 @@ export function ActivateAccount({
 
   return (
     <AccessLayout>
-      <p className="eyebrow">Primeiro acesso profissional</p>
+      <p className="eyebrow">{child ? 'Primeiro acesso da criança' : 'Primeiro acesso profissional'}</p>
       {complete ? (
         <>
           <h1 ref={success} tabIndex={-1}>
@@ -79,7 +83,7 @@ export function ActivateAccount({
             Sua conta foi ativada. Agora você pode entrar com seu usuário e a
             senha que escolheu.
           </output>
-          <Link className="access-button" to="/login">
+          <Link className="access-button" to={loginPath}>
             Ir para o login
           </Link>
         </>
@@ -87,14 +91,14 @@ export function ActivateAccount({
         <>
           <h1>Vamos cuidar do seu acesso?</h1>
           <p className="access-description">
-            Abra o link completo enviado pelo ADM. Se ele já foi usado, expirou
+            Abra o link completo enviado pelo {issuer}. Se ele já foi usado, expirou
             ou foi substituído, peça um novo convite.
           </p>
           <p className="form-notice">
             O convite vale por 24 horas e pode ser usado uma única vez. Se sua
             conta já foi ativada, basta entrar.
           </p>
-          <Link className="access-button" to="/login">
+          <Link className="access-button" to={loginPath}>
             Ir para o login
           </Link>
         </>
@@ -103,7 +107,7 @@ export function ActivateAccount({
           <h1>Seu percurso começa aqui.</h1>
           <p className="access-description">
             Escolha sua senha pessoal para ativar a conta. Use o usuário
-            informado pelo ADM no login.
+            informado pelo {issuer} no login.
           </p>
           <form onSubmit={submit} aria-busy={busy}>
             <p id="password-hint" className="form-hint">

@@ -1,3 +1,4 @@
+import { parseInvitation } from '../auth/invitation.ts'
 import { ApiError, apiRequest, apiResponse, readJsonResponse } from '../../services/api.ts'
 export interface ChildSummary {
   id: string
@@ -208,4 +209,12 @@ export async function uploadChildPhoto(
     body: file
   })
   return parseChild(await readJsonResponse(response))
+}
+
+export async function issueChildInvitation(id: string, csrfToken: string, origin: string) {
+  if (!uuid.test(id)) throw new ApiError(400)
+  return parseInvitation(await apiRequest(`/auth/children/${id}/invitation`, {
+    body: {},
+    csrfToken
+  }), origin, 'child')
 }

@@ -1,3 +1,5 @@
+import { parseInvitation, type ActivationInvitation } from '../auth/invitation.ts'
+export { parseInvitation } from '../auth/invitation.ts'
 import { apiRequest, ApiError } from '../../services/api.ts'
 
 export interface ProfessionalSummary {
@@ -7,10 +9,6 @@ export interface ProfessionalSummary {
   username: string
   status: 'pending' | 'active' | 'suspended'
   archived: boolean
-}
-export interface ActivationInvitation {
-  url: string
-  expiresAt: string
 }
 export interface ProfessionalInvitation {
   professional: ProfessionalSummary
@@ -46,34 +44,6 @@ export function parseProfessional(value: unknown): ProfessionalSummary {
     status: value.status as ProfessionalSummary['status'],
     archived: value.archived
   }
-}
-export function parseInvitation(
-  value: unknown,
-  origin: string
-): ActivationInvitation {
-  if (
-    !record(value) ||
-    typeof value.url !== 'string' ||
-    typeof value.expiresAt !== 'string' ||
-    !Number.isFinite(Date.parse(value.expiresAt))
-  )
-    throw new ApiError(502)
-  let url: URL
-  try {
-    url = new URL(value.url)
-  } catch {
-    throw new ApiError(502)
-  }
-  if (
-    url.origin !== origin ||
-    url.username ||
-    url.password ||
-    url.pathname !== '/activate-account' ||
-    url.search ||
-    !/^#token=[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(url.hash)
-  )
-    throw new ApiError(502)
-  return { url: value.url, expiresAt: value.expiresAt }
 }
 export function parseDirectory(value: unknown): DirectoryPage {
   if (
