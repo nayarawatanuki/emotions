@@ -13,6 +13,22 @@ const emotions = new Map([
   ['nojo', ['disgust', '🤢']],
 ]);
 
+const arrowSteps = new Map([
+  ['ArrowLeft', -1], ['ArrowUp', -1], ['ArrowRight', 1], ['ArrowDown', 1],
+]);
+
+function moveAnswerFocus(event) {
+  const step = arrowSteps.get(event.key);
+  if (!step || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+  const answers = Array.from(event.currentTarget.querySelectorAll('button:not([aria-disabled="true"])'));
+  const current = answers.indexOf(event.target);
+  if (current < 0) return;
+
+  event.preventDefault();
+  answers[(current + step + answers.length) % answers.length].focus();
+}
+
 export default function EmotionActivity({ activity, getAnswerProps, imageEvents }) {
   const Heading = getAnswerProps ? 'h1' : 'h3';
 
@@ -25,7 +41,7 @@ export default function EmotionActivity({ activity, getAnswerProps, imageEvents 
           alt={activity.image_description || 'Imagem da atividade sem descrição disponível.'}
           {...imageEvents} />
       )}
-      <Answers>
+      <Answers onKeyDown={getAnswerProps ? moveAnswerFocus : undefined}>
         <legend>Qual emoção a imagem representa?</legend>
         {[activity.response1, activity.response2, activity.response3].map((answer, index) => {
           const [tone, icon] = emotions.get(answer?.trim().toLocaleLowerCase('pt-BR')) || [];
