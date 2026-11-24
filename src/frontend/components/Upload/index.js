@@ -18,18 +18,19 @@ export default class Upload extends Component {
     };
     
     render() {
-        const { id, onUpload } = this.props;
+        const { id, onUpload, label = 'Escolher imagem' } = this.props;
 
         return (
             <Dropzone accept="image/*" onDropAccepted={onUpload} multiple={false} maxFiles={1}>
                 { ({ getRootProps, getInputProps, isDragActive, isDragReject}) => (
                     <DropContainer
-                        {...getRootProps({ role: 'button', 'aria-label': 'Escolher imagem' })}
+                        {...getRootProps({ role: 'button', 'aria-labelledby': `${id}-upload-message ${id}-upload-purpose` })}
                         isDragActive={isDragActive}
                         isDragReject={isDragReject}
                     >
                         <input {...getInputProps({ id })} />
-                        {this.renderDragMessage(isDragActive, isDragReject)}
+                        <span id={`${id}-upload-purpose`} hidden>{label}</span>
+                        <div id={`${id}-upload-message`}>{this.renderDragMessage(isDragActive, isDragReject)}</div>
                     </DropContainer>
                 ) }
             </Dropzone>

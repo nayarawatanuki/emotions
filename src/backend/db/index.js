@@ -1,22 +1,22 @@
 const Sequelize = require('sequelize');
 const dbConfig = require('../connection/db');
 
-const Admin = require('../models/Admin');
-const Kid = require('../models/Kid');
-const Task = require('../models/Task');
+const Administrator = require('../models/Administrator');
+const Kid = require("../models/Kid");
+const Activity = require("../models/Activity");
 const Reward = require('../models/Reward');
 const Result = require('../models/Result');
 
 const connect = new Sequelize(dbConfig);
 
-Admin.init(connect);
+Administrator.init(connect);
 Kid.init(connect);
-Task.init(connect);
+Activity.init(connect);
 Reward.init(connect);
 Result.init(connect);
 
 Kid.associate(connect.models);
-Task.associate(connect.models);
+Activity.associate(connect.models);
 Reward.associate(connect.models);
 Result.associate(connect.models);
 

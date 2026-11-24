@@ -3,55 +3,54 @@ import React, { useContext, useState, useEffect } from 'react'
 export const KidContext = React.createContext()
 
 const KidProvider = ({ children }) => {
-    const [kid_id, setKid_id] = useState();
-    const [kid_name, setKid_name] = useState();
-    const [kid_photo, setKid_photo] = useState();
+    const [kidId, setKidId] = useState();
+    const [kidName, setKidName] = useState();
+    const [kidPhoto, setKidPhoto] = useState();
 
-    console.log("kid ", kid_id);
 
     useEffect(() => {
         const savedKid = window.sessionStorage.getItem('kid');
         if(savedKid) {
             const {id, name, photo} = JSON.parse(savedKid);
             console.log('id: ', id, name, photo);
-            setKid_id(id);
-            setKid_name(name);
-            setKid_photo(photo);
+            setKidId(id);
+            setKidName(name);
+            setKidPhoto(photo);
         }
     }, [])
 
     function saveId(id) {
         const savedKid = window.sessionStorage.getItem('kid');
-        const savedKidJSON = JSON.parse(savedKid) || {}
+        const savedKidData = JSON.parse(savedKid) || {}
         
-        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidJSON, id}));
-        setKid_id(id);
+        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidData, id}));
+        setKidId(id);
     } 
 
     function saveName(name) {
         const savedKid = window.sessionStorage.getItem('kid');
-        const savedKidJSON = JSON.parse(savedKid) || {}
-        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidJSON, name}));
-        setKid_name(name);
+        const savedKidData = JSON.parse(savedKid) || {}
+        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidData, name}));
+        setKidName(name);
     }
 
     function savePhoto(photo) {
         const savedKid = window.sessionStorage.getItem('kid');
-        const savedKidJSON = JSON.parse(savedKid) || {}
-        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidJSON, photo}));
-        setKid_photo(photo);
+        const savedKidData = JSON.parse(savedKid) || {}
+        window.sessionStorage.setItem('kid', JSON.stringify({...savedKidData, photo}));
+        setKidPhoto(photo);
     }
     
     return (
         <KidContext.Provider
             value={{
-                kid_id,
+                kidId,
                 saveId,
 
-                kid_name,
+                kidName,
                 saveName,
 
-                kid_photo,
+                kidPhoto,
                 savePhoto
             }}
         >
