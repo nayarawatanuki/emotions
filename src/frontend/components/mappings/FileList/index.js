@@ -1,9 +1,10 @@
 import React from 'react';
+import { ActionButton } from '../../ActionButton';
 import { MdCheckCircle, MdError, MdLink } from 'react-icons/md';
 
 import { Container, FileInfo, Preview } from "./styles";
 
-const FileList = ({ file, onDelete }) => (
+const FileList = ({ file, onDelete, disabled }) => (
   <Container>
     {file.map(uploadedFile => (
       <li key={uploadedFile.id}>
@@ -13,18 +14,18 @@ const FileList = ({ file, onDelete }) => (
             <strong>{uploadedFile.name}</strong>
             <span>
               {uploadedFile.readableSize}{" "}
-              <button onClick={() => onDelete(uploadedFile.id)}>
+              <ActionButton appearance="custom" disabled={disabled} onClick={() => onDelete(uploadedFile.id)}>
                 Excluir
-              </button>
+              </ActionButton>
             </span>
           </div>
         </FileInfo>
         <div>
           {!uploadedFile.uploaded && !uploadedFile.error && (
-            <MdCheckCircle size={24} color="#78e5d5" />
+            <MdCheckCircle size={24} color="#33615a" />
           )}
           
-          {uploadedFile.error && <MdError size={24} color="#e57878" />}
+          {uploadedFile.error && <MdError size={24} color="#874646" />}
 
           {uploadedFile.url && (
             <a

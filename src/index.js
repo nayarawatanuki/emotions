@@ -1,54 +1,78 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Switch, Route } from 'react-router-dom';
+import { BrowserRouter, Switch, Route, useLocation } from 'react-router-dom';
 import App from './App';
+import { pageRoutes } from './routes';
 
-import Home from './frontend/pages/Home/index';
+import NotFound from './frontend/pages/NotFound';
 
-import Admin from './frontend/pages/Admin/index';
-import addAdmin from './frontend/pages/Admin/addAdmin';
-//import listAdmin from './frontend/pages/Admin/'
+import Administration from './frontend/pages/Administration';
+import AddAdministrator from './frontend/pages/Administration/AddAdministrator';
 
-import KidAcess from './frontend/pages/KidAcess/Login/index';
-import Tasks from './frontend/pages/KidAcess/Tasks/index';
-import Task3 from './frontend/pages/KidAcess/Task3/index';
+import KidAccess from "./frontend/pages/KidAccess/Login/index";
+import KidActivities from "./frontend/pages/KidAccess/Activities/index";
+import PlayActivity from "./frontend/pages/KidAccess/PlayActivity/index";
 
-//Pages PsycAcess
-import PsycAcess from './frontend/pages/PsycAcess/Login/index';
-import Kids from './frontend/pages/PsycAcess/Kids/index';
-import Activities from './frontend/pages/PsycAcess/Activities/index';
-import addKid  from './frontend/pages/PsycAcess/addKid/index';
-//import addActivity  from './frontend/pages/PsycAcess/addActivity/index';
-import addTask3  from './frontend/pages/PsycAcess/addTask3/index';
+import ProfessionalAccess from "./frontend/pages/ProfessionalAccess/Login/index";
+import Kids from "./frontend/pages/ProfessionalAccess/Kids/index";
+import Activities from "./frontend/pages/ProfessionalAccess/Activities/index";
+import AddKid  from "./frontend/pages/ProfessionalAccess/AddKid/index";
+import AddActivity  from "./frontend/pages/ProfessionalAccess/AddActivity/index";
 
-import KidProvider  from './frontend/context/kidContext';
-import TaskProvider  from './frontend/context/taskContext';
+import KidProvider  from "./frontend/context/kidContext";
+import ActivityProvider  from "./frontend/context/activityContext";
+
+const pageTitles = {
+  [pageRoutes.home]: 'Início',
+  [pageRoutes.administration]: 'Administração',
+  [pageRoutes.addAdministrator]: 'Adicionar administrador',
+  [pageRoutes.kidLogin]: 'Acesso da criança',
+  [pageRoutes.professionalLogin]: 'Acesso profissional',
+  [pageRoutes.kidActivities]: 'Minhas atividades',
+  [pageRoutes.playActivity]: 'Responder atividade',
+  [pageRoutes.kids]: 'Crianças',
+  [pageRoutes.activities]: 'Atividades',
+  [pageRoutes.addKid]: 'Adicionar criança',
+  [pageRoutes.addActivity]: 'Adicionar atividade',
+};
+
+function PageTitle() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const route = pathname.replace(/\/$/, '').toLowerCase() || '/';
+    document.title = `${pageTitles[route] || 'Página não encontrada'} — Emotions`;
+  }, [pathname]);
+
+  return null;
+}
 
 const root = createRoot(document.getElementById('root'));
 
 root.render(
   <KidProvider>
-    <TaskProvider>
+    <ActivityProvider>
       <BrowserRouter>
+        <PageTitle />
         <Switch>
-          <Route path="/" exact={true} component={App} />
-          <Route path="/Home" exact={true} component={Home} />
+          <Route path={pageRoutes.home} exact={true} component={App} />
 
-          <Route path="/Admin" exact={true} component={Admin} />
-          <Route path="/addAdmin" exact={true} component={addAdmin} />
+          <Route path={pageRoutes.administration} exact={true} component={Administration} />
+          <Route path={pageRoutes.addAdministrator} exact={true} component={AddAdministrator} />
           
-          <Route path="/KidAcess" exact={true} component={KidAcess} />
-          <Route path="/Tasks" exact={true} component={Tasks} />
-          <Route path="/Task3" exact={true} component={Task3} />
+          <Route path={pageRoutes.kidLogin} exact={true} component={KidAccess} />
+          <Route path={pageRoutes.kidActivities} exact={true} component={KidActivities} />
+          <Route path={pageRoutes.playActivity} exact={true} component={PlayActivity} />
 
-          <Route path="/PsycAcess" exact={true} component={PsycAcess} />
-          <Route path="/Kids" exact={true} component={Kids} />
-          <Route path="/Activities" exact={true} component={Activities} />
-          <Route path="/addKid" exact={true} component={addKid} />
+          <Route path={pageRoutes.professionalLogin} exact={true} component={ProfessionalAccess} />
+          <Route path={pageRoutes.kids} exact={true} component={Kids} />
+          <Route path={pageRoutes.activities} exact={true} component={Activities} />
+          <Route path={pageRoutes.addKid} exact={true} component={AddKid} />
           
-          <Route path="/addTask3" exact={true} component={addTask3} />
+          <Route path={pageRoutes.addActivity} exact={true} component={AddActivity} />
+          <Route component={NotFound} />
         </Switch>
       </BrowserRouter>
-    </TaskProvider>
+    </ActivityProvider>
   </KidProvider>
 );

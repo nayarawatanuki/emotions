@@ -14,12 +14,13 @@ class Kid extends Model {
             key: DataTypes.STRING,
             photo: DataTypes.STRING,
         }, {
-            sequelize
+            sequelize,
+            tableName: 'kids'
         })
     }
 
     static associate(models) {
-        this.hasMany(models.Task, { foreignKey: 'kid_id', as: 'tasks'});
+        this.hasMany(models.Activity, { foreignKey: 'kid_id', as: 'activities'});
     }
 }
 

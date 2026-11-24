@@ -11,7 +11,7 @@ class Reward extends Model {
     }
 
     static associate(models) {
-        this.belongsTo(models.Task, { foreignKey: 'task_id', as: 'tasks'});
+        this.belongsTo(models.Activity, { foreignKey: 'activity_id', as: 'activities'});
     }
 }
 

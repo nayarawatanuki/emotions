@@ -1,8 +1,10 @@
+import { pageRoutes } from '../../../../routes';
+import { legacyMediaUrl } from '../../../services/api';
+import { ActionButton } from '../../ActionButton';
 import React, { useState } from "react";
 
 import { Preview, Input } from './styles';
 
-import { Link } from "react-router-dom";
 import { useKidContext } from "../../../context/kidContext";
 
 function KidList({ kid, updateKid, deleteKid }){ 
@@ -10,11 +12,11 @@ function KidList({ kid, updateKid, deleteKid }){
     const {saveId, saveName, savePhoto} = useKidContext();
     const [id, setId] = useState(kid.id)
     const [photo, setPhoto] = useState(kid.photo);
-    const [treatment, setTreatment] = useState(kid.treatment);
+    const [careActive, setCareActive] = useState(kid.treatment);
     const [user, setUser] = useState(kid.user);
     const [code, setCode] = useState(kid.code);
     const [name, setName] = useState(kid.name);
-    const [rate, setRate] = useState(kid.rate);
+    const [grade, setGrade] = useState(kid.rate);
     const [birth, setBirth] = useState(kid.birth);
     const [parent, setParent] = useState(kid.parent);
     const [note, setNote] = useState(kid.note);
@@ -25,25 +27,23 @@ function KidList({ kid, updateKid, deleteKid }){
       <tr className='tr'>
         <td>
           <Preview
-            src={photo}
-            id='photo'
-            //onChange={(e) => setPhoto(e.target.files[0])}
-            readOnly={isReadOnly}
+            src={legacyMediaUrl(photo)}
+            aria-hidden="true"
           />  
         </td>
         <td>
           <Input
-            id="treatment"
+            aria-label="Acompanhamento"
             className="input"
             type="text"
-            defaultValue={treatment}
-            onChange={(e) => setTreatment(e.target.value)}
+            defaultValue={careActive}
+            onChange={(e) => setCareActive(e.target.value)}
             readOnly={isReadOnly}
           />
         </td>
         <td>
           <Input
-            id="code"
+            aria-label="Usuário"
             className="input"
             type="text"
             defaultValue={user}
@@ -53,7 +53,7 @@ function KidList({ kid, updateKid, deleteKid }){
         </td>
         <td>
           <Input
-            id="code"
+            aria-label="Código de acesso"
             className="input"
             type="text"
             defaultValue={code}
@@ -63,7 +63,7 @@ function KidList({ kid, updateKid, deleteKid }){
         </td>
         <td>
           <Input
-            id="name"
+            aria-label="Nome"
             className="input"
             type="text"
             defaultValue={name}
@@ -73,17 +73,17 @@ function KidList({ kid, updateKid, deleteKid }){
         </td>
         <td>
           <Input
-            id="rate"
+            aria-label="Grau"
             className="input"
             type="text"
-            defaultValue={rate}
-            onChange={(e) => setRate(e.target.value)}
+            defaultValue={grade}
+            onChange={(e) => setGrade(e.target.value)}
             readOnly={isReadOnly}
           />
         </td>
         <td>
           <Input
-            id="birth"
+            aria-label="Nascimento"
             className="input"
             type="text"
             defaultValue={birth}
@@ -93,7 +93,7 @@ function KidList({ kid, updateKid, deleteKid }){
         </td>
         <td>
           <Input
-            id="parent"
+            aria-label="Responsável"
             className="input"
             type="text"
             defaultValue={parent}
@@ -103,7 +103,7 @@ function KidList({ kid, updateKid, deleteKid }){
         </td>
         <td>
           <Input
-            id="note"
+            aria-label="Observações"
             className="input"
             type="text"
             defaultValue={note}
@@ -112,76 +112,51 @@ function KidList({ kid, updateKid, deleteKid }){
           />
         </td>
         <td>
-          <Link to={{ pathname: "/addTask3", search:`${kid.id}` }}>
-            <button
-              id="vincular"
-              className="btn btn-sm btn-info d-inline-block mr-1"
-              onClick={() => {
-                saveId(kid.id)
-              }}
-            >
-              <i className="fas fa-plus"></i>
-            </button>
-          </Link>
-
-          <Link to={{ pathname: "/Activities", search: `${kid.id}`}}>
-            <button
-              id="list"
-              className="btn btn-sm btn-info d-inline-block mr-1"
-              onClick={() => {
-                saveId(`${kid.id}`)
-                saveName(`${kid.name}`)
-                savePhoto(`${kid.photo}`)
-              }}
-            >
-              <i className="fas fa-list"></i>
-            </button>
-          </Link>
+          <ActionButton size="compact" to={{ pathname: pageRoutes.addActivity, search: String(kid.id) }}
+            aria-label={`Adicionar atividade para ${kid.name}`}
+            onClick={() => saveId(kid.id)} icon="add" />
+          <ActionButton size="compact" to={{ pathname: pageRoutes.activities, search: String(kid.id) }}
+            aria-label={`Ver atividades de ${kid.name}`}
+            onClick={() => {
+              saveId(String(kid.id));
+              saveName(kid.name);
+              savePhoto(kid.photo);
+            }} icon="list" />
         </td>
         <td>
-          <button
-            id="edit"
-            className="btn btn-sm btn-info d-inline-block mr-1"
+          <ActionButton size="compact"
+            type="button"
+            aria-label={`Editar cadastro de ${kid.name}`}
             onClick={(e) => {
               e.preventDefault(); 
               setReadOnly(false);
-              document.getElementById("save").disabled = false;
-            }}
-          >
-            <i className="fas fa-edit"></i>
-          </button>
-          <button
-            id="save"
-            disabled={true}
-            className="btn btn-sm btn-success d-inline-block mr-1"
+            }} icon="edit" />
+          <ActionButton size="compact"
+            type="button"
+            aria-label={`Salvar cadastro de ${kid.name}`}
+            disabled={isReadOnly}
             onClick={(e) => {
               e.preventDefault();
               updateKid({
                 id: kid.id,
-                treatment,
+                treatment: careActive,
                 name,
                 user,
                 code,
-                rate,
+                rate: grade,
                 birth,
                 parent,
                 note
               });
               setReadOnly(true);
-              document.getElementById("save").disabled = true;
-            }}
-          >
-            <i className="fas fa-save"></i>
-          </button>
-          <button
-            className="btn btn-sm btn-danger d-inline-block"
+            }} icon="save" variant="success" />
+          <ActionButton size="compact"
+            type="button"
+            aria-label={`Excluir cadastro de ${kid.name}`}
             onClick={(e) => {
               e.preventDefault();
               deleteKid(kid.id);
-            }}
-          >
-            <i className="fas fa-trash-alt"></i>
-          </button>
+            }} icon="delete" variant="danger" />
         </td>
       </tr>
     )

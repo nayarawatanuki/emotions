@@ -56,3 +56,30 @@ a.tcc-button-link:hover {
     color: #000;
     text-decoration: none;
 }
+
+.tcc-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: .75rem;
+    margin-block-start: 1rem;
+}
+
+.tcc-form-actions > .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 44px;
+    max-inline-size: 100%;
+    margin: 0;
+    padding: .55rem 1rem;
+    font: inherit;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+    white-space: normal;
+}
+
+.tcc-not-found h1 {
+    overflow-wrap: break-word;
+}

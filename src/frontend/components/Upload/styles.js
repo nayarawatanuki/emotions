@@ -1,17 +1,17 @@
 import styled, { css } from 'styled-components';
 
 const dragActive = css`
-    border-color: #78e5d5;
+    border-color: #55a296;
 `;
 
 const dragReject = css`
-    border-color: #e57878;
+    border-color: #e07575;
 `;
 
 export const DropContainer = styled.div.attrs({
     className: "dropzone"
 })`
-    border: 1px dashed #ddd;
+    border: 1px dashed #949494;
     border-radius: 4px;
     cursor: pointer;
 
@@ -22,9 +22,9 @@ export const DropContainer = styled.div.attrs({
 `;
 
 const messageColors = {
-    default: '#999',
-    error: '#e57878',
-    success: '#78e5d5',
+    default: '#595959',
+    error: '#874646',
+    success: '#33615a',
 };
 
 export const UploadMessage = styled.p`

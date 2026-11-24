@@ -1,4 +1,4 @@
-const Kid = require('../models/Kid');
+const Kid = require("../models/Kid");
 const fs = require("fs");
 const path = require("path");
 
@@ -19,10 +19,10 @@ module.exports = {
 
     async listOne(req, res) {
 
-        const {kid_id} = req.params;
+        const {kid_id: kidId} = req.params;
 
         const kid = await Kid.findOne({
-            where: {id: kid_id}
+            where: {id: kidId}
         });
         if (kid === null) {
             console.log('Not found!');
@@ -61,16 +61,16 @@ module.exports = {
     async update(req, res) {
 
         const {
-            id
+            kid_id: id
         } = req.params;
         const {
-            treatment, name, user, code, rate, birth, parent, note, key, photo
+            treatment: careActive, name, user, code, rate: grade, birth, parent, note, key, photo
         } = req.body;
 
         console.log('controller update kid', req.params, req.body)
         try {
             const kid = await Kid.update({
-                treatment, name, user, code, rate, birth, parent, note, key, photo
+                treatment: careActive, name, user, code, rate: grade, birth, parent, note, key, photo
             },
 
                 {
@@ -91,7 +91,7 @@ module.exports = {
     },
 
     async delete(req, res) {
-        const { id } = req.params;
+        const { kid_id: id } = req.params;
 
         console.log('controller delete kid', req.params)
         try {

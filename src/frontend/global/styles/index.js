@@ -10,15 +10,51 @@ export default createGlobalStyle`
         box-sizing: border-box;
     }
 
-    :focus-visible {
+    body :is(a, button, input, select, textarea, [tabindex]):focus-visible {
         outline: 3px solid #003841;
         outline-offset: 3px;
+        scroll-margin-block: 1rem;
     }
 
     @media (forced-colors: active) {
-        :focus-visible {
+        body :is(a, button, input, select, textarea, [tabindex]):focus-visible {
             outline-color: Highlight;
         }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .swal-overlay,
+        .swal-modal,
+        .swal-icon,
+        .swal-icon::before,
+        .swal-icon::after,
+        .swal-icon * {
+            animation: none;
+            transition: none;
+        }
+    }
+
+    .form-control::placeholder {
+        color: #535a60;
+        opacity: 1;
+    }
+
+    .swal-modal:not(.tcc-reward-modal) .swal-button--confirm {
+        background: #11626d;
+        color: #fff;
+    }
+
+    .swal-modal:not(.tcc-reward-modal) .swal-button--confirm:hover,
+    .swal-modal:not(.tcc-reward-modal) .swal-button--confirm:active {
+        background: #105b65;
+    }
+
+    .swal-modal .swal-button--cancel {
+        color: #404040;
+    }
+
+    .swal-modal .swal-text {
+        color: #595959;
     }
 
     header {

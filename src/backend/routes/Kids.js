@@ -1,30 +1,31 @@
+const { apiRoutes } = require('../../routes');
 const express = require('express');
 const routes = express.Router();
 
 const multer = require('multer');
-const multerConfig = require('../connection/AWS/kidPhoto/multer');
+const multerConfig = require("../connection/AWS/kidPhoto/multer");
 
-const Kids = require('../controllers/KidController');
+const kids = require("../controllers/KidController");
 
 //FUNCTIONS
-routes.get('/listKids', Kids.list);
+routes.get(apiRoutes.kids, kids.list);
 
-routes.get('/:kid_id/listKid', Kids.listOne);
+routes.get(apiRoutes.kid, kids.listOne);
 
-routes.post('/login', Kids.login);
+routes.post(apiRoutes.kidLogin, kids.login);
 
-routes.post('/createdKid', multer(multerConfig).single("photo"), (req, res) => {
+routes.post(apiRoutes.kids, multer(multerConfig).single("photo"), (req, res) => {
     
     const { key, location } = req.file || {};
     const photo = location || (key && `/kidPhoto/${encodeURIComponent(key)}`);
     if (!photo) return res.status(400).json({ error: 'Image required' });
-    const { treatment, name, user, code, rate, birth, parent, note } = req.body;
+    const { treatment: careActive, name, user, code, rate: grade, birth, parent, note } = req.body;
     //console.log("test ", req.body)
 
-    const Kid = require('../models/Kid');
+    const Kid = require("../models/Kid");
 
     const kid = Kid.create(
-        { treatment, name, user, code, rate, birth, parent, note, key, photo }
+        { treatment: careActive, name, user, code, rate: grade, birth, parent, note, key, photo }
     ).then((response) => {
         return res.json(response);
         
@@ -36,8 +37,8 @@ routes.post('/createdKid', multer(multerConfig).single("photo"), (req, res) => {
     });
 })
 
-routes.put('/updatedKid/:id', Kids.update);
+routes.put(apiRoutes.kid, kids.update);
 
-routes.delete('/deletedKid/:id', Kids.delete);
+routes.delete(apiRoutes.kid, kids.delete);
 
 module.exports = routes;

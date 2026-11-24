@@ -24,14 +24,14 @@ export const FileInfo = styled.div`
         flex-direction: column;
 
         span {
-            color: #999;
+            color: #595959;
             margin-top: 5px;
 
             button {
                 border: 0;
                 background: transparent;
-                color: #e57878;
-                margin-left= 5px;
+                color: #874646;
+                margin-left: 5px;
                 cursor: pointer;
             }
         }

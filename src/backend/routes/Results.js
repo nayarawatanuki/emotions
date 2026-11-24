@@ -1,15 +1,16 @@
+const { apiRoutes } = require('../../routes');
 const express = require('express');
 const routes = express.Router();
 
 const ResultController = require('../controllers/ResultController');
 
 //FUNCTIONS
-routes.get('/tasks/:kid_id/listTaskResult',  ResultController.list);
+routes.get(apiRoutes.kidActivityResults,  ResultController.list);
 
-routes.post('/tasks/:task_id/createdTaskResult', ResultController.create)
+routes.post(apiRoutes.activityResults, ResultController.create)
 
-routes.put('/updatedTaskResult/:id', ResultController.update);
+routes.put(apiRoutes.result, ResultController.update);
 
-routes.delete('/deletedTaskResult/:id', ResultController.delete);
+routes.delete(apiRoutes.result, ResultController.delete);
 
 module.exports = routes;

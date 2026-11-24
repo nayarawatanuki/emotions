@@ -1,7 +1,11 @@
 'use strict';
 
+const { findActivityTable, foreignKeyForActivity } = require('../activitySchema');
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const activityTable = await findActivityTable(queryInterface);
+    if (!activityTable) throw new Error('The activity table must exist before its references.');
     await queryInterface.createTable('rewards', { 
       id: {
         type: Sequelize.INTEGER,
@@ -9,10 +13,10 @@ module.exports = {
         autoIncrement: true,
         allowNull: false,
       },
-      task_id: {
+      [foreignKeyForActivity(activityTable)]: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'tasks', key: 'id' },
+        references: { model: activityTable, key: 'id' },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },

@@ -1,0 +1,48 @@
+.tcc-page-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.5fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: .5rem;
+    min-block-size: 64px;
+    padding: .5rem clamp(.75rem, 3vw, 1.5rem);
+    background: #f8f9fa;
+    color: #243f42;
+}
+
+.tcc-page-header__start,
+.tcc-page-header__end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    min-inline-size: 0;
+}
+
+.tcc-page-header__end {
+    justify-content: flex-end;
+}
+
+.tcc-page-header .button,
+.tcc-page-header .action-icon {
+    margin: 0;
+}
+
+.tcc-page-header .button {
+    padding-inline: clamp(.4rem, 2vw, .9rem);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.tcc-page-header__title {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(.875rem, 3.4vw, 1.25rem);
+    line-height: 1.25;
+    font-weight: 400;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+h1.tcc-page-header__title {
+    font-weight: 500;
+}
