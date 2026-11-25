@@ -34,6 +34,14 @@ export default createGlobalStyle`
         }
     }
 
+    .form-control {
+        border-color: #647d83;
+    }
+
+    .form-control:focus {
+        border-color: #003841;
+    }
+
     .form-control::placeholder {
         color: #535a60;
         opacity: 1;
