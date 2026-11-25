@@ -3,6 +3,12 @@ import styled from 'styled-components';
 
 import { Table } from '../../global/styles/card';
 
+const ScrollRegion = styled.div`
+    position: relative;
+    max-inline-size: 100%;
+    overflow-x: auto;
+`;
+
 const Pagination = styled.nav`
     display: flex;
     flex-wrap: wrap;
@@ -44,21 +50,23 @@ export default function DataTable({
 
     return (
         <>
-            <Table className={`table legacy-${variant}-table`} role="table">
-                <caption className="sr-only">{title}</caption>
-                <thead role="rowgroup">
-                    <tr role="row">
-                        {columns.map(({ key, label }) => (
-                            <th key={key} role="columnheader" scope="col">{label}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody role="rowgroup">
-                    {visibleRows.map((row) => renderRow
-                        ? renderRow(row, columns)
-                        : <DataRow key={row.id} columns={columns} cells={row} />)}
-                </tbody>
-            </Table>
+            <ScrollRegion role="region" aria-label={title} tabIndex={0}>
+                <Table className={`table legacy-${variant}-table`} role="table">
+                    <caption className="sr-only">{title}</caption>
+                    <thead role="rowgroup">
+                        <tr role="row">
+                            {columns.map(({ key, label }) => (
+                                <th key={key} role="columnheader" scope="col">{label}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody role="rowgroup">
+                        {visibleRows.map((row) => renderRow
+                            ? renderRow(row, columns)
+                            : <DataRow key={row.id} columns={columns} cells={row} />)}
+                    </tbody>
+                </Table>
+            </ScrollRegion>
             {pageCount > 1 && (
                 <Pagination aria-label={`Paginação de ${title}`}>
                     <button type="button" className="btn" aria-disabled={page === 1}
